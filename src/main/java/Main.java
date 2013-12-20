@@ -137,5 +137,14 @@ public class Main extends Application {
 		setList(fr);
 
 	}
+	
+	/**
+	 * Allows you to retrieve a file from a GUI.
+	 * 
+	 * @return
+	 */
+	public File getFile(boolean open){
+		//TODO
+	}
 
 }

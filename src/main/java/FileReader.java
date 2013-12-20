@@ -58,14 +58,16 @@ public abstract class FileReader extends TreeView<Node>{
 			//This is a trial directory.
 			ArrayList<String> stamps = new ArrayList<String>();
 
+			//Collect individual stamps.
 			for (File f : list){
 				String stamp = f.getName();
-				stamp = stamp.substring(stamp.indexOf('_'), stamp.indexOf('.'));
+				stamp = stamp.substring(stamp.indexOf('_') + 1, stamp.indexOf('.'));
 				if (!stamps.contains(stamp)){
 					stamps.add(stamp);
 				}
 			}
 
+			
 			for (int i = 0; i < stamps.size(); ++i){
 				node.getChildren().add(getTrial(list, stamps.get(i), "Trial " + (i+1) + " ["+stamps.get(i)+"]"));
 			}
@@ -99,6 +101,7 @@ public abstract class FileReader extends TreeView<Node>{
 		
 		ArrayList<File> valid = new ArrayList<File>(6);
 
+		//Make a list of files that have the correct stamp.
 		for (File f : files){
 			if (f.getName().contains(timeStamp))
 				valid.add(f);
