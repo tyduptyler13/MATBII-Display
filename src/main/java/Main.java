@@ -14,6 +14,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -140,11 +141,18 @@ public class Main extends Application {
 	
 	/**
 	 * Allows you to retrieve a file from a GUI.
-	 * 
-	 * @return
+	 * @param title - Title of window
+	 * @param open - Open existing file (If false, opens save dialog)
+	 * @return Chosen File
 	 */
-	public File getFile(boolean open){
-		//TODO
+	public File getFile(String title, boolean open){
+		FileChooser fc = new FileChooser();
+		fc.setTitle(title);
+		if (open){
+			return fc.showOpenDialog(stage);
+		} else {
+			return fc.showSaveDialog(stage);
+		}
 	}
 
 }
