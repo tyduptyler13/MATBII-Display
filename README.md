@@ -12,6 +12,19 @@ This program is designed to read through multiple files and directories to find 
 It will display the information in useful graphs and tabbed output for easy reading. These graphs can be exported as 
 images if needed and some of the data can be parsed into one master file for statistics.
 
+How to use
+----
+Run the jar by double clicking it (It should work if you have java installed). Then use
+the open button to open a file directory you would like the program to search. From there,
+you will see files in your directory tree on the left. Right click on any Trial node and
+you can save the output. (Currently only works for either ctrl-clicking or shift-clicking
+if you need to select more than one node. Selecting a parent does not save its children yet.)
+
+Known Bugs
+----
+* Trials do not seem to be saving all of their events. (Still working on a fix)
+* Multiple selection doesn't behave as expected yet. (Fix coming soon)
+
 Requirements
 ----
 This program __requires__ version 1.7 update 9 of java or later.
