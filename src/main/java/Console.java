@@ -11,6 +11,10 @@ public class Console{
 
 	public static String name = "MATBII-Display";
 	public static ArrayList<PrintInterface> outputs = new ArrayList<PrintInterface>();
+	
+	public static void addOutput(PrintInterface i){
+		outputs.add(i);
+	}
 
 	public static void print(String message){
 		printToAll("["+name+"] "+message);

@@ -45,7 +45,8 @@ public class MATBEvent{
 
 	private void parse(String line) throws ParseException{
 
-		if (line.charAt(0) == '#') throw new ParseException("Invalid line: '" + line + "'", 0);
+		if (line.isEmpty() || line.charAt(0) == '#')
+			throw new ParseException("Invalid line: '" + line + "'", 0);
 
 		String[] parts = line.split(del);
 

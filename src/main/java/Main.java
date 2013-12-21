@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -16,6 +17,7 @@ import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.File;
 
@@ -38,13 +40,15 @@ public class Main extends Application {
 	}
 
 	public void start(Stage stage){
+		
+		openConsole();
 
 		this.stage = stage;
 
 		BorderPane border = new BorderPane();
 
 		border.setTop(createMenu());
-		
+
 		final SplitPane sp = new SplitPane();
 		final StackPane sp1 = new StackPane();
 		sp1.getChildren().add(createList());
@@ -89,24 +93,29 @@ public class Main extends Application {
 	}
 
 	private Node createList(){
-		
+
 		BorderPane bp = new BorderPane();
 
 		list = new ScrollPane();
 		Text title = new Text("File Tree:");
-		
+
 		bp.setTop(title);
 		bp.setCenter(list);
-		
+
 		return bp;
 
 	}
 
 	private Node createDisplayArea(){
 		content = new ScrollPane();
+		
+		//TODO Finish trial views.
+		Text t = new Text("This view is not yet available. Statistics will be available here soon.");
+		
+		content.setContent(t);
 
 		content.setPrefSize(500, 500);
-		
+
 		return content;
 	}
 
@@ -123,10 +132,10 @@ public class Main extends Application {
 		DirectoryChooser chooser = new DirectoryChooser();
 		chooser.setTitle("Choose the top directory");
 		File file = chooser.showDialog(stage);
-		
+
 		if (file == null) return;
 
-		FileReader fr = new FileReader(file){
+		FileReader fr = new FileReader(file, this){
 
 			@Override
 			public void display(Node n) {
@@ -138,21 +147,55 @@ public class Main extends Application {
 		setList(fr);
 
 	}
-	
+
 	/**
 	 * Allows you to retrieve a file from a GUI.
 	 * @param title - Title of window
 	 * @param open - Open existing file (If false, opens save dialog)
 	 * @return Chosen File
 	 */
-	public File getFile(String title, boolean open){
+	public File getFile(String title, FileChooser.ExtensionFilter[] ef , boolean open){
 		FileChooser fc = new FileChooser();
+		fc.getExtensionFilters().addAll(ef);
 		fc.setTitle(title);
 		if (open){
 			return fc.showOpenDialog(stage);
 		} else {
 			return fc.showSaveDialog(stage);
 		}
+	}
+
+	private static void openConsole(){
+
+
+		final Stage console = new Stage();
+		//console.initStyle(StageStyle.UTILITY);
+
+		final TextArea ta = new TextArea();
+		ta.setPrefHeight(300);
+		ta.setPrefWidth(500);
+		ta.setEditable(false);
+		
+		Console.addOutput(new PrintInterface(){
+
+			@Override
+			public void print(String s) {
+				ta.appendText(s + "\r\n");
+			}
+			
+		});
+
+
+
+		final Scene s = new Scene(ta);
+		console.setScene(s);
+
+		console.setTitle("MATBII-Console");
+		
+		console.show();
+		
+		Console.log("Loaded ConsoleGUI");
+
 	}
 
 }

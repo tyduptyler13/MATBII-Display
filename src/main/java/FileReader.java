@@ -1,15 +1,29 @@
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
+import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Node;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 
 
 public abstract class FileReader extends TreeView<Node>{
+
+	private final Main root;
+	private ArrayList<Task<String>> tasks = new ArrayList<Task<String>>();
 
 	/**
 	 * Matches all files specific to MATBII
@@ -29,12 +43,59 @@ public abstract class FileReader extends TreeView<Node>{
 			return false;
 		}
 
-	}; 
+	};
 
-	public FileReader(File directory){
+	/**
+	 * Scans directories for files and then reads in the data.
+	 * 
+	 * @param directory - Where to do the search.
+	 * @param rootWindow - Needed for the trials and saving files.
+	 */
+	public FileReader(File directory, Main rootWindow){
 		super();
 
+		root = rootWindow;
+		
+		//Selection mode
+		getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+		
+
+		//Context Menu
+		ContextMenu menu = new ContextMenu();
+		MenuItem saveButton = new MenuItem("Save");
+		saveButton.setOnAction(new SaveEventHandle());
+		menu.getItems().add(saveButton);
+
+		setContextMenu(menu);
+
+		//Take care of io.
+		
+		Console.log("Scanning for trials.");
+
 		getFiles(directory);
+
+		Console.log("Scan complete. Parsing files.");
+
+		Thread executer = new Thread(new Runnable(){
+
+			@Override
+			public void run() {
+
+				for (Task<String> t : tasks){
+
+					t.run();
+
+				}
+
+				Console.log("Parsing complete. Ready.");
+
+			}
+
+		});
+
+		Console.log("Parsing in separate thread. App thread ready.");
+
+		executer.start();
 
 	}
 
@@ -110,7 +171,9 @@ public abstract class FileReader extends TreeView<Node>{
 		File[] list = new File[valid.size()];
 		valid.toArray(list);
 
-		Trial t = new Trial(id, list);
+		Trial t = new Trial(id, timeStamp, list);
+
+		tasks.add(t.setupTask());
 
 		TreeItem<Node> ti = new TreeItem<Node>(t);
 
@@ -120,4 +183,92 @@ public abstract class FileReader extends TreeView<Node>{
 
 	public abstract void display(Node n);
 
+	/**
+	 * Concurrent method for writing files.
+	 * 
+	 * Returns status message when finished.
+	 * @author Tyler
+	 *
+	 */
+	private final class Writer extends Task<String>{
+
+		private final File file;
+		private final List<Trial> trials;
+
+		public Writer(File out, List<Trial> trials){
+			super();
+			file = out;
+			this.trials = trials;
+		}
+
+		@Override
+		protected String call() throws Exception {
+
+			BufferedWriter out = null;
+
+			try{
+
+				out = new BufferedWriter( new FileWriter(file));
+
+				out.append(Trial.header + "," + MATBEvent.header + "\r\n"); //DOS formated.
+
+				for (Trial t : trials){
+					t.toString(out);
+				}
+
+			} finally {
+				out.flush();
+				out.close();
+			}
+
+			return "Printed data to " + file.getName();
+		}
+
+	}
+
+	private class SaveEventHandle implements EventHandler<ActionEvent>{
+
+		@Override
+		public void handle(ActionEvent evt) {
+
+			FileChooser.ExtensionFilter[] efs = {new FileChooser.ExtensionFilter("CSV files", "*.csv")};
+			
+			
+			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
+			
+			List<Trial> trials = new ArrayList<Trial>();
+			
+			for (TreeItem<Node> t : getSelectionModel().getSelectedItems()){
+				
+				if (t.isLeaf() && t.getValue() instanceof Trial){
+					
+					trials.add((Trial) t.getValue());
+					
+				}
+				
+			}
+
+			Writer w = new Writer(f, trials);
+
+			w.setOnSucceeded(new EventHandler<WorkerStateEvent>(){
+
+				@Override
+				public void handle(WorkerStateEvent t) {
+					Console.log("[Master] " + t.getSource().getValue());
+				}
+
+			});
+
+			try {
+
+				new Thread(w).start();
+
+			} catch (Exception e) {
+				Console.error("Could not save to (" + f.getName() + "): " + e.getMessage());
+			}
+
+		}
+
+	}
+	
 }
