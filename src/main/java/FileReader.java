@@ -55,10 +55,10 @@ public abstract class FileReader extends TreeView<Node>{
 		super();
 
 		root = rootWindow;
-		
+
 		//Selection mode
 		getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-		
+
 
 		//Context Menu
 		ContextMenu menu = new ContextMenu();
@@ -69,7 +69,7 @@ public abstract class FileReader extends TreeView<Node>{
 		setContextMenu(menu);
 
 		//Take care of io.
-		
+
 		Console.log("Scanning for trials.");
 
 		getFiles(directory);
@@ -232,20 +232,16 @@ public abstract class FileReader extends TreeView<Node>{
 		public void handle(ActionEvent evt) {
 
 			FileChooser.ExtensionFilter[] efs = {new FileChooser.ExtensionFilter("CSV files", "*.csv")};
-			
-			
+
+
 			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
-			
+
 			List<Trial> trials = new ArrayList<Trial>();
-			
+
 			for (TreeItem<Node> t : getSelectionModel().getSelectedItems()){
-				
-				if (t.isLeaf() && t.getValue() instanceof Trial){
-					
-					trials.add((Trial) t.getValue());
-					
-				}
-				
+
+				trials.addAll(getSelected(t));
+
 			}
 
 			Writer w = new Writer(f, trials);
@@ -254,7 +250,7 @@ public abstract class FileReader extends TreeView<Node>{
 
 				@Override
 				public void handle(WorkerStateEvent t) {
-					Console.log("[Master] " + t.getSource().getValue());
+					Console.log("[IO Thread] " + t.getSource().getValue());
 				}
 
 			});
@@ -270,5 +266,33 @@ public abstract class FileReader extends TreeView<Node>{
 		}
 
 	}
-	
+
+	private List<Trial> getSelected(TreeItem<Node> node){
+
+		ArrayList<Trial> list = new ArrayList<Trial>();
+
+		return getSelected(node, list);
+
+	}
+
+	private List<Trial> getSelected(TreeItem<Node> node, List<Trial> list){
+
+		if (node.isLeaf() && node.getValue() instanceof Trial){
+
+			list.add((Trial) node.getValue());
+
+		} else {
+
+			for (TreeItem<Node> n : node.getChildren()){
+
+				getSelected(n, list);
+
+			}
+
+		}
+
+		return list;
+
+	}
+
 }

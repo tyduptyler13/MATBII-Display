@@ -63,7 +63,7 @@ public class Trial extends VBox{
 			@Override
 			public void handle(WorkerStateEvent t) {
 
-				Console.log('['+name+"] " + t.getSource().getValue());
+				Console.log("[Parser] " + t.getSource().getValue());
 
 			}
 
