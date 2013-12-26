@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -17,12 +19,15 @@ import javafx.scene.text.Text;
 public class Trial extends VBox{
 
 	private Node content;
-	private final String name;
-	private final String stamp;
+	private final int id;
+	private final Date timestamp;
 	private ProgressBar progress;
 
 	private final File[] files;
 
+	private static final SimpleDateFormat tdfin = new SimpleDateFormat("yyyy_MMddHHmm");
+	private static final SimpleDateFormat tdfout = new SimpleDateFormat("yyyy/MM/dd hh:mma");
+	
 	private ArrayList<MATBEvent> events = new ArrayList<MATBEvent>();
 
 	/**
@@ -39,15 +44,16 @@ public class Trial extends VBox{
 	 * @param stamp - String version of the associated timestamp.
 	 * @param files - A list of associated files to parse.
 	 * @param rootWindow - Access to the root window for opening dialogs.
+	 * @throws ParseException 
 	 */
-	public Trial(String name, String stamp, File[] files){
+	public Trial(int id, String stamp, File[] files) throws ParseException{
 		super();
 
-		this.name = name;
-		this.stamp = stamp;
+		this.id = id;
 		this.files = files;
+		timestamp = tdfin.parse(stamp);
 
-		Text title = new Text(name);
+		Text title = new Text("Trial " + id + " " + tdfout.format(timestamp));
 
 		progress = new ProgressBar();
 
@@ -80,7 +86,7 @@ public class Trial extends VBox{
 	 */
 	public String toString(){
 		String ret = header + ',' + MATBEvent.header;
-		String prepend = "\"" + stamp + "\",\"" + name + "\",";
+		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",";
 		for (MATBEvent e : events){
 			ret += prepend + e.toString() + "\r\n";
 		}
@@ -118,7 +124,7 @@ public class Trial extends VBox{
 			out.append(header + ',' + MATBEvent.header + "\r\n");
 		}
 		
-		String prepend = "\"" + stamp + "\",\"" + name + "\",";
+		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",";
 
 		for (MATBEvent e : events){
 			out.append(prepend + e.toString() + "\r\n");
@@ -190,7 +196,7 @@ public class Trial extends VBox{
 			updateMessage("Processed");
 			updateProgress(100, 100);
 
-			return "Successfully read in " + name;
+			return "Successfully read in Trial " + id;
 		}
 
 	}

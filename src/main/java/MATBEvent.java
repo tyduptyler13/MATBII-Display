@@ -4,6 +4,8 @@ import java.util.Date;
 
 
 public class MATBEvent{
+	
+	private static final String ccleaner = "(^[-\\s]+|[-\\s]+$)"; //Comment Cleaner
 
 	public enum EventType{
 		EventProcessed("Event Processed"),
@@ -63,35 +65,31 @@ public class MATBEvent{
 					eventType = EventType.EventProcessed;
 					event = parts[3];
 					if (4 < parts.length)
-						comment = parts[4];
+						comment = parts[4].replaceAll(ccleaner, "");
 				}
 
 			} else {//Doesn't have an event number.
 
-				int part = 1;
-
-				if (parts[part].contains("Device Initialization")){
+				if (parts[1].contains("Device Initialization")){
 					eventType = EventType.DeviceInit;
-					if (part+1 < parts.length)
-						comment = parts[part+1];
-				} else if (parts[part].contains("Recording Interval")){
+					if (2 < parts.length)
+						comment = parts[2].replaceAll(ccleaner, "");
+				} else if (parts[1].contains("Recording Interval")){
 					eventType = EventType.RecordingInterval;
-					event = parts[part].split(": ")[1];
-				} else if (parts[part].contains("Subject Response")){
+					event = parts[2];
+				} else if (parts[1].contains("Subject Response")){
 					eventType = EventType.SubjectResponse;
-					event = parts[part].split(": ")[1];
-					if (part + 1 < parts.length)
-						comment = parts[part+1];
-				} else if (parts[part].contains("Event Terminated")){
+					event = parts[2];
+					if (3 < parts.length)
+						comment = parts[3].replaceAll(ccleaner, "");
+				} else if (parts[1].contains("Event Terminated")){
 					eventType = EventType.EventTerminated;
-					event = parts[part].split(": ")[1];
-					if (part + 1 < parts.length){
-						comment = parts[part+1];
-					}
+					event = parts[2];
+					if (3 < parts.length)
+						comment = parts[3].replaceAll(ccleaner, "");
 				}
 
 			}
-
 
 		} catch (Exception e){
 			throw new ParseException("Could not parse: '" + line + "'", 0);

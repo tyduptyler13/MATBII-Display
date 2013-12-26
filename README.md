@@ -16,14 +16,13 @@ How to use
 ----
 Run the jar by double clicking it (It should work if you have java installed). Then use
 the open button to open a file directory you would like the program to search. From there,
-you will see files in your directory tree on the left. Right click on any Trial node and
-you can save the output. (Currently only works for either ctrl-clicking or shift-clicking
-if you need to select more than one node. Selecting a parent does not save its children yet.)
+you will see files in your directory tree on the left. Right click on any node and
+you can save the output. Doing this on higher level nodes like folders will save all trials
+in that folder.
 
 Known Bugs
 ----
-* Trials do not seem to be saving all of their events. (Still working on a fix)
-* Multiple selection doesn't behave as expected yet. (Fix coming soon)
+* None (YAY)
 
 Requirements
 ----

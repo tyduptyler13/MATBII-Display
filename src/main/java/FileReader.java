@@ -2,6 +2,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileWriter;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -130,7 +131,11 @@ public abstract class FileReader extends TreeView<Node>{
 
 
 			for (int i = 0; i < stamps.size(); ++i){
-				node.getChildren().add(getTrial(list, stamps.get(i), "Trial " + (i+1) + " ["+stamps.get(i)+"]"));
+				try {
+					node.getChildren().add(getTrial(list, stamps.get(i), i+1));
+				} catch (ParseException e) {
+					Console.error("Could not read in trial with timestamp " + stamps.get(i));
+				}
 			}
 
 			return true;
@@ -158,7 +163,7 @@ public abstract class FileReader extends TreeView<Node>{
 
 	}
 
-	private TreeItem<Node> getTrial(File[] files, String timeStamp, String id){
+	private TreeItem<Node> getTrial(File[] files, String timeStamp, int id) throws ParseException{
 
 		ArrayList<File> valid = new ArrayList<File>(6);
 
@@ -235,6 +240,11 @@ public abstract class FileReader extends TreeView<Node>{
 
 
 			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
+			
+			if (f == null){
+				Console.log("Save aborted.");
+				return;
+			}
 
 			List<Trial> trials = new ArrayList<Trial>();
 
@@ -253,6 +263,16 @@ public abstract class FileReader extends TreeView<Node>{
 					Console.log("[IO Thread] " + t.getSource().getValue());
 				}
 
+			});
+			
+			w.setOnFailed(new EventHandler<WorkerStateEvent>(){
+
+				@Override
+				public void handle(WorkerStateEvent t) {
+					Console.log("Failed to save the file!");
+					Console.error(t.getSource().getException().getMessage());
+				}
+				
 			});
 
 			try {
