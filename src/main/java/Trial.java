@@ -7,6 +7,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -28,7 +30,7 @@ public class Trial extends VBox{
 	private static final SimpleDateFormat tdfin = new SimpleDateFormat("yyyy_MMddHHmm");
 	private static final SimpleDateFormat tdfout = new SimpleDateFormat("yyyy/MM/dd hh:mma");
 	
-	private ArrayList<MATBEvent> events = new ArrayList<MATBEvent>();
+	private TreeMap<Date, EventContainer> events = new TreeMap<Date, EventContainer>();
 
 	/**
 	 * Defines the default header for this scope of printing.
@@ -85,11 +87,13 @@ public class Trial extends VBox{
 	 * Prints out data that can identify everything about this trial in a csv format.
 	 */
 	public String toString(){
-		String ret = header + ',' + MATBEvent.header;
+		String ret = Trial.getHeader() + "\r\n";
 		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",";
-		for (MATBEvent e : events){
+		
+		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
 			ret += prepend + e.toString() + "\r\n";
 		}
+		
 		return ret;
 	}
 
@@ -121,13 +125,13 @@ public class Trial extends VBox{
 	public BufferedWriter toString(BufferedWriter out, boolean useHeader) throws IOException{
 		
 		if (useHeader){
-			out.append(header + ',' + MATBEvent.header + "\r\n");
+			out.append(Trial.getHeader() + "\r\n");
 		}
 		
 		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",";
 
-		for (MATBEvent e : events){
-			out.append(prepend + e.toString() + "\r\n");
+		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
+			out.append(prepend + e.getValue().toString() + "\r\n");
 		}
 
 		return out;
@@ -148,11 +152,21 @@ public class Trial extends VBox{
 			super();
 			files = in;
 		}
+		
+		private EventContainer getEvent(Date key){
+			if (events.containsKey(key)){
+				return events.get(key);
+			} else {
+				EventContainer e = new EventContainer();
+				events.put(key, e);
+				return e;
+			}
+		}
 
-		private void readMATB(File f) throws IOException{
+		private void readFile(File f) throws IOException{
 			BufferedReader in = null;
 
-			updateMessage("Reading file");
+			updateMessage("Reading file.");
 
 			try{
 
@@ -163,8 +177,16 @@ public class Trial extends VBox{
 
 					try{
 
-						MATBEvent event = new MATBEvent(line);
-						events.add(event);
+						if (f.getName().startsWith("MATB")){
+							MATBEvent event = new MATBEvent();
+							Date time = event.parse(line);
+							getEvent(time).matb = event;
+						} else if (f.getName().startsWith("COMM")){
+							COMMEvent event = new COMMEvent();
+							Date time = event.parse(line);
+							getEvent(time).comm = event;
+						}
+						
 
 					} catch (ParseException e) {
 						continue; //We can handle files that are poorly parsed by skipping lines.
@@ -176,6 +198,9 @@ public class Trial extends VBox{
 				in.close();
 
 			}
+			
+			updateMessage("Finished reading file.");
+			
 		}
 
 		@Override
@@ -186,10 +211,7 @@ public class Trial extends VBox{
 
 			for (File f : files){
 
-				if (f.getName().startsWith("MATB")){
-					readMATB(f);
-				}
-				//Currently don't directly support the other files.
+				readFile(f);
 
 			}
 
@@ -199,6 +221,10 @@ public class Trial extends VBox{
 			return "Successfully read in Trial " + id;
 		}
 
+	}
+	
+	public static String getHeader(){
+		return Trial.header + ',' + EventContainer.getHeader();
 	}
 
 }

@@ -215,7 +215,7 @@ public abstract class FileReader extends TreeView<Node>{
 
 				out = new BufferedWriter( new FileWriter(file));
 
-				out.append(Trial.header + "," + MATBEvent.header + "\r\n"); //DOS formated.
+				out.append(Trial.getHeader() + "\r\n"); //DOS formated.
 
 				for (Trial t : trials){
 					t.toString(out);

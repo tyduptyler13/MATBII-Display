@@ -3,9 +3,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 
-public class MATBEvent{
-	
-	private static final String ccleaner = "(^[-\\s]+|[-\\s]+$)"; //Comment Cleaner
+public class MATBEvent extends ReaderInterface{
 
 	public enum EventType{
 		EventProcessed("Event Processed"),
@@ -20,19 +18,21 @@ public class MATBEvent{
 		}
 	}
 
-	private static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.S");
-	private static final String del = "[:?\\s]{2,}";
-
 	/**
 	 * Default csv header fields.
 	 */
 	public static final String header = "\"Time\",\"Event Number\",\"EventType\",\"Details\",\"Comment\"";
 
-	public Date time;
+	//Time included from superclass
 	public int eventNumber = -1;
 	public EventType eventType;
 	public String event = "";
 	public String comment = "";
+	
+	/**
+	 * Dud constructor. If this is used you need to use parse to fill it.
+	 */
+	public MATBEvent(){}
 
 	/**
 	 * Requires a line from the MATB file.
@@ -45,7 +45,7 @@ public class MATBEvent{
 
 	}
 
-	private void parse(String line) throws ParseException{
+	public Date parse(String line) throws ParseException{
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
@@ -94,6 +94,9 @@ public class MATBEvent{
 		} catch (Exception e){
 			throw new ParseException("Could not parse: '" + line + "'", 0);
 		}
+
+		return time;
+
 	}
 
 	public String toString(){
@@ -107,7 +110,7 @@ public class MATBEvent{
 		ret += ",\"" + event + "\"";
 
 		ret += ",\"" + comment + "\"";
-		
+
 		return ret;
 
 	}
