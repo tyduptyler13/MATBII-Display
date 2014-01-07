@@ -9,7 +9,8 @@ public class EventContainer{
 	public WRSEvent wrs;
 	
 	public static String getHeader(){
-		return MATBEvent.header + ',' + COMMEvent.header + ',' + RMANEvent.header;
+		return MATBEvent.header + ',' + COMMEvent.header + ',' + RMANEvent.header + ',' + SYSMEvent.header +
+				',' + TRCKEvent.header;
 	}
 	
 	/**
@@ -31,6 +32,18 @@ public class EventContainer{
 			ret += ',' + rman.toString();
 		} else {
 			ret += ',' + emptyCSVGen(RMANEvent.hcount);
+		}
+		
+		if (sysm != null){
+			ret += ',' + sysm.toString();
+		} else {
+			ret += ',' + emptyCSVGen(SYSMEvent.hcount);
+		}
+		
+		if (trck != null){
+			ret += ',' + trck.toString();
+		} else {
+			ret += ',' + emptyCSVGen(TRCKEvent.hcount);
 		}
 		
 		return ret;

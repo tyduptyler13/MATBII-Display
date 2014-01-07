@@ -5,6 +5,7 @@ import java.util.Date;
 public class SYSMEvent extends ReaderInterface{
 
 	public static final String header = "\"RT\",\"System\",\"Light/Scale\",\"Sys Ok\",\"Remarks\"";
+	public static final int hcount = 5;
 
 	public enum System{
 		Light,
@@ -15,7 +16,13 @@ public class SYSMEvent extends ReaderInterface{
 	public System system;
 	public String ls;
 	public Boolean sysok;
-	public String remarks;
+	public String remarks = "";
+	
+	public SYSMEvent(){}
+	
+	public SYSMEvent(String line) throws ParseException{
+		parse(line);
+	}
 
 	@Override
 	public Date parse(String line) throws ParseException {
@@ -55,9 +62,10 @@ public class SYSMEvent extends ReaderInterface{
 	@Override
 	public String toString() {
 		
-		//TODO
+		String ret = "\"" + (Float.isNaN(rt)?rt:"") + "\",\"" + (system==System.Light?"Light":"Scale") +
+				"\",\"" + ls + "\",\"" + (sysok!=null?sysok:"") + "\",\"" + remarks + "\"";
 		
-		return null;
+		return ret;
 	}
 
 }

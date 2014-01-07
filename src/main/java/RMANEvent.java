@@ -18,6 +18,12 @@ public class RMANEvent extends ReaderInterface{
 	public int diffA;
 	public int diffB;
 
+	public RMANEvent(){}
+	
+	public RMANEvent(String line) throws ParseException{
+		parse(line);
+	}
+	
 	@Override
 	public Date parse(String line) throws ParseException {
 
