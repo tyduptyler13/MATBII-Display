@@ -5,7 +5,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
@@ -96,6 +95,18 @@ public class Trial extends VBox{
 		
 		return ret;
 	}
+	
+	/**
+	 * This reduces the characters required in a csv line so that
+	 * it doesn't take up as much space.
+	 * @param in
+	 * @return
+	 */
+	private String cleanCSV(String in){
+
+		return in.replaceAll("\"\"", "");
+
+	}
 
 	/**
 	 * A safer and faster stream alternative to the default toString.
@@ -131,7 +142,7 @@ public class Trial extends VBox{
 		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",";
 
 		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
-			out.append(prepend + e.getValue().toString() + "\r\n");
+			out.append(cleanCSV(prepend + e.getValue().toString() + "\r\n"));
 		}
 
 		return out;
@@ -185,11 +196,29 @@ public class Trial extends VBox{
 							COMMEvent event = new COMMEvent();
 							Date time = event.parse(line);
 							getEvent(time).comm = event;
+						} else if (f.getName().startsWith("SYSM")){
+							SYSMEvent event = new SYSMEvent();
+							Date time = event.parse(line);
+							getEvent(time).sysm = event;
+						} else if (f.getName().startsWith("TRCK")){
+							TRCKEvent event = new TRCKEvent();
+							Date time = event.parse(line);
+							getEvent(time).trck = event;
+						} else if (f.getName().startsWith("RMAN")){
+							RMANEvent event = new RMANEvent();
+							Date time = event.parse(line);
+							getEvent(time).rman = event;
+						} else if (f.getName().startsWith("WRS")){
+							WRSEvent event = new WRSEvent();
+							Date time = event.parse(line);
+							getEvent(time).wrs = event;
 						}
-						
 
 					} catch (ParseException e) {
 						continue; //We can handle files that are poorly parsed by skipping lines.
+					} catch (Exception e){
+						Console.error("An error occured in parsing! The results are likely unusable. Details printed to System.err.");
+						e.printStackTrace(System.err);
 					}
 				}
 

@@ -22,7 +22,8 @@ in that folder.
 
 Known Bugs
 ----
-* None (YAY)
+* Occasionally, the dropdown tree will have an error in the deeper parts of java and freeze.
+There is unfortunately nothing I can do about this.
 
 Requirements
 ----

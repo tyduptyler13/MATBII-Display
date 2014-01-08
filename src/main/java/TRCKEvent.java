@@ -31,6 +31,7 @@ public class TRCKEvent extends ReaderInterface{
 
 	@Override
 	public Date parse(String line) throws ParseException {
+
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
@@ -51,7 +52,7 @@ public class TRCKEvent extends ReaderInterface{
 			rmsd3 = Float.parseFloat(parts[10]);
 
 			if (parts.length >= 12){
-				remarks = parts[11];
+				remarks = parts[11].replaceAll(ccleaner, "");
 			}
 
 		} else {
@@ -75,7 +76,7 @@ public class TRCKEvent extends ReaderInterface{
 	}
 
 	private int readInt(String s){
-		s.replaceAll(",", "");
+		s = s.replaceAll(",", "");
 		return Integer.parseInt(s);
 	}
 

@@ -46,10 +46,10 @@ public class SYSMEvent extends ReaderInterface{
 				} else {
 					system = System.Scale;
 				}
-			} else if (part.matches("(TRUE|FALSE")){
+			} else if (part.matches("(TRUE|FALSE)")){
 				sysok = Boolean.parseBoolean(part);
 			} else if (part.startsWith("-")){
-				remarks = part;
+				remarks = part.replaceAll(ccleaner, "");
 			} else {
 				ls = part.replaceAll(ccleaner, "");
 			}

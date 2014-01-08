@@ -240,7 +240,7 @@ public abstract class FileReader extends TreeView<Node>{
 
 
 			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
-			
+
 			if (f == null){
 				Console.log("Save aborted.");
 				return;
@@ -264,7 +264,7 @@ public abstract class FileReader extends TreeView<Node>{
 				}
 
 			});
-			
+
 			w.setOnFailed(new EventHandler<WorkerStateEvent>(){
 
 				@Override
@@ -272,7 +272,7 @@ public abstract class FileReader extends TreeView<Node>{
 					Console.log("Failed to save the file!");
 					Console.error(t.getSource().getException().getMessage());
 				}
-				
+
 			});
 
 			try {
