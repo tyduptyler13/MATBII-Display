@@ -63,9 +63,13 @@ public abstract class FileReader extends TreeView<Node>{
 
 		//Context Menu
 		ContextMenu menu = new ContextMenu();
-		MenuItem saveButton = new MenuItem("Save");
-		saveButton.setOnAction(new SaveEventHandle());
-		menu.getItems().add(saveButton);
+		MenuItem saveDataButton = new MenuItem("Save Data");
+		saveDataButton.setOnAction(new SaveDataEventHandle());
+		
+		MenuItem saveStatsButton = new MenuItem("Save Stats");
+		saveStatsButton.setOnAction(new SaveStatsEventHandle());
+		
+		menu.getItems().addAll(saveDataButton, saveStatsButton);
 
 		setContextMenu(menu);
 
@@ -195,12 +199,12 @@ public abstract class FileReader extends TreeView<Node>{
 	 * @author Tyler
 	 *
 	 */
-	private final class Writer extends Task<String>{
+	private final class DataWriter extends Task<String>{
 
 		private final File file;
 		private final List<Trial> trials;
 
-		public Writer(File out, List<Trial> trials){
+		public DataWriter(File out, List<Trial> trials){
 			super();
 			file = out;
 			this.trials = trials;
@@ -239,13 +243,12 @@ public abstract class FileReader extends TreeView<Node>{
 
 	}
 
-	private class SaveEventHandle implements EventHandler<ActionEvent>{
+	private class SaveDataEventHandle implements EventHandler<ActionEvent>{
 
 		@Override
 		public void handle(ActionEvent evt) {
 
 			FileChooser.ExtensionFilter[] efs = {new FileChooser.ExtensionFilter("CSV files", "*.csv")};
-
 
 			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
 
@@ -262,7 +265,7 @@ public abstract class FileReader extends TreeView<Node>{
 
 			}
 
-			Writer w = new Writer(f, trials);
+			DataWriter w = new DataWriter(f, trials);
 
 			w.setOnSucceeded(new EventHandler<WorkerStateEvent>(){
 
@@ -293,6 +296,106 @@ public abstract class FileReader extends TreeView<Node>{
 
 		}
 
+	}
+	
+	private class StatsWriter extends Task<String>{
+		
+		private final File file;
+		private final List<Trial> trials;
+
+		public StatsWriter(File out, List<Trial> trials){
+			super();
+			file = out;
+			this.trials = trials;
+		}
+
+		@Override
+		protected String call() throws Exception {
+
+			BufferedWriter out = null;
+
+			try{
+
+				out = new BufferedWriter( new FileWriter(file));
+
+				out.append(Trial.getStatsHeader() + "\r\n"); //DOS formated.
+
+				for (Trial t : trials){
+					t.getStats(out);
+				}
+
+			} catch (Exception e){
+				
+				super.failed();
+				updateMessage("Failed");
+				Console.error("An error occured saving the file. Printed exception to System.err");
+				e.printStackTrace(System.err);
+				return "Failed to save file! (" + file.getName() +")";
+				
+			} finally {
+				out.flush();
+				out.close();
+			}
+
+			return "Printed data to " + file.getName();
+		}
+		
+	}
+	
+	private class SaveStatsEventHandle implements EventHandler<ActionEvent>{
+
+		@Override
+		public void handle(ActionEvent event) {
+			
+			FileChooser.ExtensionFilter[] efs = {new FileChooser.ExtensionFilter("CSV files", "*.csv")};
+
+			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
+
+			if (f == null){
+				Console.log("Save aborted.");
+				return;
+			}
+
+			List<Trial> trials = new ArrayList<Trial>();
+
+			for (TreeItem<Node> t : getSelectionModel().getSelectedItems()){
+
+				trials.addAll(getSelected(t));
+
+			}
+
+			StatsWriter w = new StatsWriter(f, trials);
+
+			w.setOnSucceeded(new EventHandler<WorkerStateEvent>(){
+
+				@Override
+				public void handle(WorkerStateEvent t) {
+					Console.log("[IO Thread] " + t.getSource().getValue());
+				}
+
+			});
+
+			w.setOnFailed(new EventHandler<WorkerStateEvent>(){
+
+				@Override
+				public void handle(WorkerStateEvent t) {
+					Console.log("Failed to save the file!");
+					Console.error(t.getSource().getException().getMessage());
+				}
+
+			});
+
+			try {
+
+				new Thread(w).start();
+
+			} catch (Exception e) {
+				Console.error("Could not save to (" + f.getName() + "): " + e.getMessage());
+			}
+
+			
+		}
+		
 	}
 
 	private List<Trial> getSelected(TreeItem<Node> node){

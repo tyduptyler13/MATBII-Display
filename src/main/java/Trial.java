@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -28,7 +29,7 @@ public class Trial extends VBox{
 
 	private static final SimpleDateFormat tdfin = new SimpleDateFormat("yyyy_MMddHHmm");
 	private static final SimpleDateFormat tdfout = new SimpleDateFormat("yyyy/MM/dd hh:mma");
-	
+
 	private TreeMap<Date, EventContainer> events = new TreeMap<Date, EventContainer>();
 
 	/**
@@ -90,16 +91,16 @@ public class Trial extends VBox{
 
 		String absolutePath = files[0].getAbsolutePath();
 		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
-		
+
 		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
-		
+
 		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
 			ret += prepend + e.toString() + "\r\n";
 		}
-		
+
 		return ret;
 	}
-	
+
 	/**
 	 * This reduces the characters required in a csv line so that
 	 * it doesn't take up as much space.
@@ -138,14 +139,14 @@ public class Trial extends VBox{
 	 * @throws IOException 
 	 */
 	public BufferedWriter toString(BufferedWriter out, boolean useHeader) throws IOException{
-		
+
 		if (useHeader){
 			out.append(Trial.getHeader() + "\r\n");
 		}
-		
+
 		String absolutePath = files[0].getAbsolutePath();
 		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
-		
+
 		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
 		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
@@ -170,7 +171,7 @@ public class Trial extends VBox{
 			super();
 			files = in;
 		}
-		
+
 		private EventContainer getEvent(Date key){
 			if (events.containsKey(key)){
 				return events.get(key);
@@ -234,9 +235,9 @@ public class Trial extends VBox{
 				in.close();
 
 			}
-			
+
 			updateMessage("Finished reading file.");
-			
+
 		}
 
 		@Override
@@ -258,9 +259,90 @@ public class Trial extends VBox{
 		}
 
 	}
-	
+
 	public static String getHeader(){
 		return Trial.header + ',' + EventContainer.getHeader();
+	}
+
+	//Begin stats functions
+
+	public static String getStatsHeader(){
+		return header + ",\"Event\",\"Reaction time (ms) (Time Since Event)\",\"Dead Time (ms) (Time Since last response)\"";
+	}
+
+	public BufferedWriter getStats(BufferedWriter out){
+
+		String absolutePath = files[0].getAbsolutePath();
+		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+
+		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
+
+		long dead = -1;
+		long rt[] = new long[3];
+
+		for (int i = 0; i < 3; ++i){
+			rt[i] = -1;
+		}
+
+		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
+
+			MATBEvent row = e.getValue().matb;
+
+			if (row.event.matches("(Resource Management|System Monitoring|Communications)")){
+
+				if (row.eventType == MATBEvent.EventType.SubjectResponse){
+
+					long time = row.time.getTime();
+					long curDead = 0;
+
+					if (dead != -1){
+						curDead = time - dead; //Gets dead time since last response.
+					}
+
+					dead = time;
+
+					long reaction = -1;
+
+					if (!row.comment.contains("Inappropriate")){
+
+						if (row.event.equals("Resource Management")){
+							reaction = time - rt[0];
+							rt[0] = -1;
+						} else if (row.event.equals("System Monitoring")){
+							reaction = time - rt[1];
+							rt[1] = -1;
+						} else if (row.event.equals("Communications")){
+							reaction = time - rt[2];
+							rt[2] = -1;
+						}
+
+					}
+
+					try {
+						out.append(prepend + row.event + "," + ((reaction!=-1)?reaction:"") + "," + curDead + "\r\n");
+					} catch (IOException e1) {
+						Console.error("An error occured writting to the file!");
+					}
+
+				} else if (row.eventType == MATBEvent.EventType.EventProcessed){
+					
+					long time = row.time.getTime();
+
+					if (row.event.equals("Resource Management")){
+						rt[0] = time;
+					} else if (row.event.equals("System Monitoring")){
+						rt[1] = time;
+					} else if (row.event.equals("Communications")){
+						rt[2] = time;
+					}
+
+				}
+
+			}
+
+		}
+
+		return out;
 	}
 
 }

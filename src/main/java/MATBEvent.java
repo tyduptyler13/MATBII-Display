@@ -1,7 +1,6 @@
 import java.text.ParseException;
 import java.util.Date;
 
-
 public class MATBEvent extends ReaderInterface{
 
 	public enum EventType{
