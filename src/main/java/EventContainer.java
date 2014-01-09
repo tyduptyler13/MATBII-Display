@@ -58,10 +58,10 @@ public class EventContainer{
 
 	private static String emptyCSVGen(int count){
 
-		String ret = "\"\"";
+		String ret = "";
 
 		for (int i = 1; i < count; ++i){
-			ret += ",\"\"";
+			ret += ",";
 		}
 
 		return ret;

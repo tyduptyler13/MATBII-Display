@@ -35,7 +35,7 @@ public class TRCKEvent extends ReaderInterface{
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
-		String[] parts = line.split(del);
+		String[] parts = line.split("\\s+");
 
 		time = sdf.parse(parts[0]);
 

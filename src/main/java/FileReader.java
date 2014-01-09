@@ -221,6 +221,14 @@ public abstract class FileReader extends TreeView<Node>{
 					t.toString(out);
 				}
 
+			} catch (Exception e){
+				
+				super.failed();
+				updateMessage("Failed");
+				Console.error("An error occured saving the file. Printed exception to System.err");
+				e.printStackTrace(System.err);
+				return "Failed to save file! (" + file.getName() +")";
+				
 			} finally {
 				out.flush();
 				out.close();

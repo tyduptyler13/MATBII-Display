@@ -36,7 +36,7 @@ public class Trial extends VBox{
 	 * 
 	 * This will be appended to event data.
 	 */
-	public static final String header = "\"TimeStamp\",\"Trial Name\"";
+	public static final String header = "\"TimeStamp\",\"Trial Name\",\"Folder\"";
 
 	/**
 	 * Contains all visual and numerical data of a trial set.
@@ -87,7 +87,11 @@ public class Trial extends VBox{
 	 */
 	public String toString(){
 		String ret = Trial.getHeader() + "\r\n";
-		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",";
+
+		String absolutePath = files[0].getAbsolutePath();
+		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+		
+		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 		
 		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
 			ret += prepend + e.toString() + "\r\n";
@@ -139,7 +143,10 @@ public class Trial extends VBox{
 			out.append(Trial.getHeader() + "\r\n");
 		}
 		
-		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",";
+		String absolutePath = files[0].getAbsolutePath();
+		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+		
+		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
 		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
 			out.append(cleanCSV(prepend + e.getValue().toString() + "\r\n"));

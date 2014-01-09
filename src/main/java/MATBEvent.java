@@ -9,7 +9,8 @@ public class MATBEvent extends ReaderInterface{
 		DeviceInit("Device Initialization"),
 		RecordingInterval("Recording Inverval Triggered"),
 		SubjectResponse("Subject Response"),
-		EventTerminated("Event Terminated");
+		EventTerminated("Event Terminated"),
+		Information("Information");
 
 		public final String type;
 		EventType(String type){
@@ -86,6 +87,11 @@ public class MATBEvent extends ReaderInterface{
 					event = parts[2];
 					if (3 < parts.length)
 						comment = parts[3].replaceAll(ccleaner, "");
+				} else if (parts[2].contains("Information")){ //Hacky fix for a dash. :(
+					eventType = EventType.Information;
+					event = parts[3];
+					if (3 < parts.length)
+						comment = parts[4].replaceAll(ccleaner, "");
 				}
 
 			}
