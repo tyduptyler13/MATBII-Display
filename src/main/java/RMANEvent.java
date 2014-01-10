@@ -1,5 +1,5 @@
 import java.text.ParseException;
-import java.util.Date;
+import org.joda.time.DateTime;
 
 
 public class RMANEvent extends ReaderInterface{
@@ -19,20 +19,20 @@ public class RMANEvent extends ReaderInterface{
 	public int diffB;
 
 	public RMANEvent(){}
-	
+
 	public RMANEvent(String line) throws ParseException{
 		parse(line);
 	}
-	
+
 	@Override
-	public Date parse(String line) throws ParseException {
+	public DateTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
 		String[] parts = line.split(del);
 
-		time = sdf.parse(parts[0]);
+		time = readDate(parts[0]);
 
 		if (parts.length >= 8){
 
@@ -63,14 +63,14 @@ public class RMANEvent extends ReaderInterface{
 
 	@Override
 	public String toString() {
-		
+
 		String ret;
-		
+
 		ret  = "\"" + ((pump != -1)?pump:"") + "\",";
 		ret += "\"" + pumpAction + "\",";
 		ret += "\"" + tankUpdate + "\",";
 		ret += tankA + "," + tankB + "," + tankC +"," + tankD + "," + diffA + "," + diffB; 
-		
+
 		return ret;
 	}
 

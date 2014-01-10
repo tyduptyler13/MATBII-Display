@@ -52,6 +52,7 @@ public class Console{
 	 *
 	 */
 	protected static class stdout implements PrintInterface{
+		@Override
 		public void print(String s) {
 			System.out.println(s);
 		}

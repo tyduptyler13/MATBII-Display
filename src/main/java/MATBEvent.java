@@ -1,5 +1,5 @@
 import java.text.ParseException;
-import java.util.Date;
+import org.joda.time.DateTime;
 
 public class MATBEvent extends ReaderInterface{
 
@@ -20,7 +20,8 @@ public class MATBEvent extends ReaderInterface{
 	/**
 	 * Default csv header fields.
 	 */
-	public static final String header = "\"Time\",\"Event Number\",\"EventType\",\"Details\",\"Comment\"";
+	public static final String header = "\"Event Number\",\"EventType\",\"Details\",\"Comment\"";
+	public static final int hcount = 4;
 
 	//Time included from superclass
 	public int eventNumber = -1;
@@ -44,14 +45,15 @@ public class MATBEvent extends ReaderInterface{
 
 	}
 
-	public Date parse(String line) throws ParseException{
+	@Override
+	public DateTime parse(String line) throws ParseException{
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
 		String[] parts = line.split(del);
 
-		time = sdf.parse(parts[0]);
+		time = readDate(parts[0]);
 
 		try {
 
@@ -103,11 +105,10 @@ public class MATBEvent extends ReaderInterface{
 
 	}
 
+	@Override
 	public String toString(){
 
-		String ret = "\"" + sdf.format(time) + "\"";
-
-		ret += ",\"" + ((eventNumber != -1)?eventNumber:"") + "\"";
+		String ret = ",\"" + ((eventNumber != -1)?eventNumber:"") + "\"";
 
 		ret += ",\"" + eventType.type + "\"";
 

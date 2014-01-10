@@ -1,12 +1,19 @@
+import org.joda.time.DateTime;
 
-public class EventContainer{
 
+public class EventContainer implements Comparable<EventContainer>{
+
+	public DateTime time;
 	public MATBEvent matb;
 	public COMMEvent comm;
 	public RMANEvent rman;
 	public SYSMEvent sysm;
 	public TRCKEvent trck;
 	public WRSEvent wrs;
+	
+	public EventContainer(DateTime time){
+		this.time = time;
+	}
 
 	public static String getHeader(){
 		return MATBEvent.header + ',' + COMMEvent.header + ',' + RMANEvent.header + 
@@ -18,9 +25,16 @@ public class EventContainer{
 	 * 
 	 * @return
 	 */
+	@Override
 	public String toString(){
 
-		String ret = matb.toString();
+		String ret = "\"" + ReaderInterface.printDate(time) + "\"";
+		
+		if (matb != null){		
+			ret += ',' + matb.toString();
+		} else {
+			ret += ',' + emptyCSVGen(MATBEvent.hcount);
+		}
 
 		if (comm != null){
 			ret += ',' + comm.toString();
@@ -66,6 +80,19 @@ public class EventContainer{
 
 		return ret;
 
+	}
+
+	@Override
+	public int compareTo(EventContainer e) {
+		return time.compareTo(e.time);
+	}
+	
+	public boolean equals(DateTime d){
+		return d.equals(time);
+	}
+	
+	public boolean equals(EventContainer e){
+		return e.equals(time);
 	}
 	
 }

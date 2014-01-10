@@ -4,11 +4,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.ArrayList;
+import java.util.Collections;
+
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
@@ -20,17 +21,21 @@ import javafx.scene.text.Text;
 
 public class Trial extends VBox{
 
+	private Text title;
+	
+	private boolean hasGoodId = false;
+	
 	private Node content;
-	private final int id;
-	private final Date timestamp;
+	private String id;
+	private final DateTime timestamp;
 	private ProgressBar progress;
 
 	private final File[] files;
 
-	private static final SimpleDateFormat tdfin = new SimpleDateFormat("yyyy_MMddHHmm");
-	private static final SimpleDateFormat tdfout = new SimpleDateFormat("yyyy/MM/dd hh:mma");
+	private static final DateTimeFormatter tdfin = DateTimeFormat.forPattern("yyyy_MMddHHmm");
+	private static final DateTimeFormatter tdfout = DateTimeFormat.forPattern("yyyy/MM/dd hh:mma");
 
-	private TreeMap<Date, EventContainer> events = new TreeMap<Date, EventContainer>();
+	private ArrayList<EventContainer> events = new ArrayList<EventContainer>();
 
 	/**
 	 * Defines the default header for this scope of printing.
@@ -51,11 +56,11 @@ public class Trial extends VBox{
 	public Trial(int id, String stamp, File[] files) throws ParseException{
 		super();
 
-		this.id = id;
+		this.id = Integer.toString(id); //TODO Temporary fix.
 		this.files = files;
-		timestamp = tdfin.parse(stamp);
+		timestamp = tdfin.parseDateTime(stamp);
 
-		Text title = new Text("Trial " + id + " " + tdfout.format(timestamp));
+		title = new Text("Trial " + id + " " + tdfout.print(timestamp));
 
 		progress = new ProgressBar();
 
@@ -86,15 +91,16 @@ public class Trial extends VBox{
 	/**
 	 * Prints out data that can identify everything about this trial in a csv format.
 	 */
+	@Override
 	public String toString(){
 		String ret = Trial.getHeader() + "\r\n";
 
 		String absolutePath = files[0].getAbsolutePath();
 		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
 
-		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
+		String prepend = "\"" + tdfout.print(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
-		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
+		for (EventContainer e : events){
 			ret += prepend + e.toString() + "\r\n";
 		}
 
@@ -147,10 +153,10 @@ public class Trial extends VBox{
 		String absolutePath = files[0].getAbsolutePath();
 		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
 
-		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
+		String prepend = "\"" + tdfout.print(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
-		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
-			out.append(cleanCSV(prepend + e.getValue().toString() + "\r\n"));
+		for (EventContainer e : events){
+			out.append(cleanCSV(prepend + e.toString() + "\r\n"));
 		}
 
 		return out;
@@ -172,17 +178,24 @@ public class Trial extends VBox{
 			files = in;
 		}
 
-		private EventContainer getEvent(Date key){
-			if (events.containsKey(key)){
-				return events.get(key);
-			} else {
-				EventContainer e = new EventContainer();
-				events.put(key, e);
-				return e;
+		private EventContainer getEvent(DateTime time){
+
+			for (EventContainer e : events) {
+				if (e.equals(time)){
+					return e;
+				}
 			}
+			
+			EventContainer ret = new EventContainer(time);
+			events.add(ret);
+			return ret;
+			
 		}
 
 		private void readFile(File f) throws IOException{
+			
+			if (f.getName().endsWith("csv")) return; //Skip csv files. It breaks things.
+			
 			BufferedReader in = null;
 
 			updateMessage("Reading file.");
@@ -193,32 +206,45 @@ public class Trial extends VBox{
 
 				String line;
 				while ((line = in.readLine()) != null){
+					
+					if (line.isEmpty() || line.charAt(0) == '#'){
+						
+						if (!hasGoodId && line.contains("Events Filename")){
+							
+							id = line.split(":\\s*")[1].trim();
+							title.setText("Trial " + id + " " + tdfout.print(timestamp));
+							hasGoodId = true; //Skip this change in the future. No need to waste time.
+							
+						}
+						
+						continue;
+					}
 
 					try{
 
 						if (f.getName().startsWith("MATB")){
 							MATBEvent event = new MATBEvent();
-							Date time = event.parse(line);
+							DateTime time = event.parse(line);
 							getEvent(time).matb = event;
 						} else if (f.getName().startsWith("COMM")){
 							COMMEvent event = new COMMEvent();
-							Date time = event.parse(line);
+							DateTime time = event.parse(line);
 							getEvent(time).comm = event;
 						} else if (f.getName().startsWith("SYSM")){
 							SYSMEvent event = new SYSMEvent();
-							Date time = event.parse(line);
+							DateTime time = event.parse(line);
 							getEvent(time).sysm = event;
 						} else if (f.getName().startsWith("TRCK")){
 							TRCKEvent event = new TRCKEvent();
-							Date time = event.parse(line);
+							DateTime time = event.parse(line);
 							getEvent(time).trck = event;
 						} else if (f.getName().startsWith("RMAN")){
 							RMANEvent event = new RMANEvent();
-							Date time = event.parse(line);
+							DateTime time = event.parse(line);
 							getEvent(time).rman = event;
 						} else if (f.getName().startsWith("WRS")){
 							WRSEvent event = new WRSEvent();
-							Date time = event.parse(line);
+							DateTime time = event.parse(line);
 							getEvent(time).wrs = event;
 						}
 
@@ -251,6 +277,8 @@ public class Trial extends VBox{
 				readFile(f);
 
 			}
+			
+			sortData();
 
 			updateMessage("Processed");
 			updateProgress(100, 100);
@@ -258,6 +286,10 @@ public class Trial extends VBox{
 			return "Successfully read in Trial " + id;
 		}
 
+	}
+	
+	public void sortData(){
+		Collections.sort(events);
 	}
 
 	public static String getHeader(){
@@ -275,7 +307,7 @@ public class Trial extends VBox{
 		String absolutePath = files[0].getAbsolutePath();
 		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
 
-		String prepend = "\"" + tdfout.format(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
+		String prepend = "\"" + tdfout.print(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
 		long dead = -1;
 		long rt[] = new long[3];
@@ -284,15 +316,15 @@ public class Trial extends VBox{
 			rt[i] = -1;
 		}
 
-		for (Map.Entry<Date, EventContainer> e : events.entrySet()){
+		for (EventContainer e : events){
 
-			MATBEvent row = e.getValue().matb;
+			MATBEvent row = e.matb;
 
 			if (row.event.matches("(Resource Management|System Monitoring|Communications)")){
 
 				if (row.eventType == MATBEvent.EventType.SubjectResponse){
 
-					long time = row.time.getTime();
+					long time = row.time.getMillis();
 					long curDead = 0;
 
 					if (dead != -1){
@@ -326,7 +358,7 @@ public class Trial extends VBox{
 
 				} else if (row.eventType == MATBEvent.EventType.EventProcessed){
 					
-					long time = row.time.getTime();
+					long time = row.time.getMillis();
 
 					if (row.event.equals("Resource Management")){
 						rt[0] = time;

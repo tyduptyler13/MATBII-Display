@@ -1,6 +1,8 @@
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 
 public class WRSEvent extends ReaderInterface{
@@ -8,9 +10,9 @@ public class WRSEvent extends ReaderInterface{
 	public static final String header = "\"Time\",\"MENL\",\"Phys\",\"Temp\",\"Perf\",\"EFFT\",\"FRUS\",\"Mean\",\"Remarks\"";
 	public static final int hcount = 10;
 
-	public static final SimpleDateFormat stf = new SimpleDateFormat("mm:ss.S");
+	public static final DateTimeFormatter stf = DateTimeFormat.forPattern("mm:ss.S");
 
-	public Date time;
+	public DateTime time2;
 	public int menl;
 	public int phys;
 	public int temp;
@@ -21,18 +23,18 @@ public class WRSEvent extends ReaderInterface{
 	public String remarks = "";
 
 	@Override
-	public Date parse(String line) throws ParseException {
+	public DateTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
-		String[] parts = line.split(del);
+		String[] parts = line.trim().split("\\s+");
 
-		time = sdf.parse(parts[0]);
+		time = readDate(parts[0]);
 
 		if (parts.length >= 9){
 
-			time = stf.parse(parts[1]);
+			time2 = stf.parseDateTime(parts[1]);
 			menl = Integer.parseInt(parts[2]);
 			phys = Integer.parseInt(parts[3]);
 			temp = Integer.parseInt(parts[4]);
@@ -55,7 +57,7 @@ public class WRSEvent extends ReaderInterface{
 	@Override
 	public String toString() {
 
-		String ret = stf.format(time) + ',' + menl + ',' + phys + ',' + perf + ',' +
+		String ret = stf.print(time) + ',' + menl + ',' + phys + ',' + perf + ',' +
 				efft + ',' + frus + ",\"" + mean + "\",\"" + remarks + "\"";
 
 		return ret;

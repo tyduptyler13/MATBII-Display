@@ -1,6 +1,7 @@
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 
 public class TRCKEvent extends ReaderInterface{
@@ -9,9 +10,10 @@ public class TRCKEvent extends ReaderInterface{
 			",\"Session Aggregate Sum of Squares\",\"RMSD\",\"Num\",\"Run Aggregate Sum of Squares\",\"RMSD\",\"Remarks\"";
 
 	public static final int hcount = 11;
-	public static final SimpleDateFormat stf = new SimpleDateFormat("mm:ss");
 
-	public Date st;
+	private static final DateTimeFormatter stf = DateTimeFormat.forPattern("mm:ss");
+
+	public DateTime st;
 	public int num;
 	public int tisos;
 	public float rmsd;
@@ -30,17 +32,17 @@ public class TRCKEvent extends ReaderInterface{
 	}
 
 	@Override
-	public Date parse(String line) throws ParseException {
+	public DateTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
-		String[] parts = line.split("\\s+");
+		String[] parts = line.trim().split("\\s+");
 
-		time = sdf.parse(parts[0]);
+		time = readDate(parts[0]);
 
 		if (parts.length >= 11){
-			st = stf.parse(parts[1]);
+			st = stf.parseDateTime(parts[1]);
 			num = readInt(parts[2]);
 			tisos = readInt(parts[3]);
 			rmsd = Float.parseFloat(parts[4]);
@@ -67,7 +69,7 @@ public class TRCKEvent extends ReaderInterface{
 	@Override
 	public String toString() {
 
-		String ret = "\"" + stf.format(st) + "\",";
+		String ret = "\"" + stf.print(st) + "\",";
 		ret += num + "," + tisos + ",\"" + rmsd + "\"," + num2 + "," + sasos + ",\"" + rmsd2 + "\"," +
 				num3 + "," + rasos + ",\"" + rmsd3 + "\",\"" + remarks + "\"";
 

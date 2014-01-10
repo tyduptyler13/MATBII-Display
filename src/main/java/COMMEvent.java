@@ -1,11 +1,14 @@
 import java.text.ParseException;
-import java.util.Date;
+
+import org.joda.time.DateTime;
+
 
 
 public class COMMEvent extends ReaderInterface{
 
-	public static final String header = "\"RT\",\"Ship\",\"Radio_T\",\"Freq_S\",\"R_Ok\",\"F_Ok\",\"Remarks\"";
-	public static final int hcount = 7;
+	public static final String header = "\"RT\",\"Ship\",\"Radio_T\",\"Freq_T\","
+			+ "\"Radio_S\",\"Freq_S\",\"R_Ok\",\"F_Ok\",\"Remarks\"";
+	public static final int hcount = 9;
 
 	public float rt = Float.NaN;
 	public String ship = "";
@@ -18,22 +21,23 @@ public class COMMEvent extends ReaderInterface{
 	public String remarks = "";
 
 	public COMMEvent(){}
-	
+
 	public COMMEvent(String line) throws ParseException {
 		parse(line);
 	}
 
-	public Date parse(String line) throws ParseException {
+	@Override
+	public DateTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
 		String[] parts = line.split(del);
 
-		time = sdf.parse(parts[0]);
+		time = readDate(parts[0]);
 
-		if (parts.length == 2){//Only a commend and time.
-			remarks = parts[1];
+		if (parts.length == 2){//Only a comment and time.
+			remarks = parts[1].replaceAll(ccleaner, "");
 		} else if (parts.length > 2){
 
 			rt = Float.parseFloat(parts[1]);
@@ -57,15 +61,16 @@ public class COMMEvent extends ReaderInterface{
 
 	}
 
+	@Override
 	public String toString(){
-		
+
 		if (Float.isNaN(rt)){
-			return "\"\",\"\",\"\",\"\",\"\",\"\",\"" + remarks + "\"";
+			return ",,,,,,,\"" + remarks + "\"";
 		}
 
-		String ret = "\"" + rt + "\",\"" + ship + "\",\"" + radiot + "\",\"" +
-				freqt + "\",\"" + radios + "\",\"" + freqs + "\",\"" + rok +
-				"\",\"" + fok + "\",\"" + remarks + "\"";
+		String ret = rt + "," + ship + "," + radiot + "," +
+				freqt + "," + radios + "," + freqs + "," + rok +
+				"," + fok + ",\"" + remarks + "\"";
 
 		return ret;
 

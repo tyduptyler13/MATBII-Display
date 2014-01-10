@@ -1,5 +1,5 @@
 import java.text.ParseException;
-import java.util.Date;
+import org.joda.time.DateTime;
 
 
 public class SYSMEvent extends ReaderInterface{
@@ -17,22 +17,22 @@ public class SYSMEvent extends ReaderInterface{
 	public String ls;
 	public Boolean sysok;
 	public String remarks = "";
-	
+
 	public SYSMEvent(){}
-	
+
 	public SYSMEvent(String line) throws ParseException{
 		parse(line);
 	}
 
 	@Override
-	public Date parse(String line) throws ParseException {
+	public DateTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
 
 		String[] parts = line.split(del);
 
-		time = sdf.parse(parts[0]);
+		time = readDate(parts[0]);
 
 		for (int i = 1; i < parts.length; ++i){
 
@@ -61,10 +61,10 @@ public class SYSMEvent extends ReaderInterface{
 
 	@Override
 	public String toString() {
-		
+
 		String ret = "\"" + (Float.isNaN(rt)?rt:"") + "\",\"" + (system==System.Light?"Light":"Scale") +
 				"\",\"" + ls + "\",\"" + (sysok!=null?sysok:"") + "\",\"" + remarks + "\"";
-		
+
 		return ret;
 	}
 
