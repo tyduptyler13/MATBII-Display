@@ -22,9 +22,9 @@ import javafx.scene.text.Text;
 public class Trial extends VBox{
 
 	private Text title;
-	
+
 	private boolean hasGoodId = false;
-	
+
 	private Node content;
 	private String id;
 	private final DateTime timestamp;
@@ -185,17 +185,17 @@ public class Trial extends VBox{
 					return e;
 				}
 			}
-			
+
 			EventContainer ret = new EventContainer(time);
 			events.add(ret);
 			return ret;
-			
+
 		}
 
 		private void readFile(File f) throws IOException{
-			
+
 			if (f.getName().endsWith("csv")) return; //Skip csv files. It breaks things.
-			
+
 			BufferedReader in = null;
 
 			updateMessage("Reading file.");
@@ -207,16 +207,18 @@ public class Trial extends VBox{
 				String line;
 				while ((line = in.readLine()) != null){
 					
+					line = line.trim();
+
 					if (line.isEmpty() || line.charAt(0) == '#'){
-						
+
 						if (!hasGoodId && line.contains("Events Filename")){
-							
+
 							id = line.split(":\\s*")[1].trim();
 							title.setText("Trial " + id + " " + tdfout.print(timestamp));
 							hasGoodId = true; //Skip this change in the future. No need to waste time.
-							
+
 						}
-						
+
 						continue;
 					}
 
@@ -224,8 +226,9 @@ public class Trial extends VBox{
 
 						if (f.getName().startsWith("MATB")){
 							MATBEvent event = new MATBEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).matb = event;
+							EventContainer e = new EventContainer(event.parse(line));
+							e.matb = event;
+							events.add(e);
 						} else if (f.getName().startsWith("COMM")){
 							COMMEvent event = new COMMEvent();
 							DateTime time = event.parse(line);
@@ -277,7 +280,7 @@ public class Trial extends VBox{
 				readFile(f);
 
 			}
-			
+
 			sortData();
 
 			updateMessage("Processed");
@@ -287,7 +290,7 @@ public class Trial extends VBox{
 		}
 
 	}
-	
+
 	public void sortData(){
 		Collections.sort(events);
 	}
@@ -299,7 +302,87 @@ public class Trial extends VBox{
 	//Begin stats functions
 
 	public static String getStatsHeader(){
-		return header + ",\"Event\",\"Reaction time (ms) (Time Since Event)\",\"Dead Time (ms) (Time Since last response)\"";
+		return header + ",\"Time\",\"Event\",\"Reaction time (Time Since Event)\",\"Time Since Last\"," +
+				"\"Dead Time (Time between blocks)\",\"Event Changed (Counts up)\",\"Block ID (Tracking vs other)\"," +
+				"\"COMM->SYSM\",\"COMM->RMAN\",\"COMM->TRCK\",\"SYSM->COMM\",\"SYSM->RMAN\",\"SYSM->TRCK\",\"RMAN->SYSM\",\""+
+				"RMAN->COMM\",\"RMAN->TRCK\",\"TRCK->SYSM\",\"TRCK->COMM\",\"TRCK->RMAN\"";
+	}
+
+	private enum EventChange{
+		COMMSYSM("x,,,,,,,,,,,"),
+		COMMRMAN(",x,,,,,,,,,,"),
+		COMMTRCK(",,x,,,,,,,,,"),
+		SYSMCOMM(",,,x,,,,,,,,"),
+		SYSMRMAN(",,,,x,,,,,,,"),
+		SYSMTRCK(",,,,,x,,,,,,"),
+		RMANSYSM(",,,,,,x,,,,,"),
+		RMANCOMM(",,,,,,,x,,,,"),
+		RMANTRCK(",,,,,,,,x,,,"),
+		TRCKSYSM(",,,,,,,,,x,,"),
+		TRCKCOMM(",,,,,,,,,,x,"),
+		TRCKRMAN(",,,,,,,,,,,x"),
+		NOCHANGE(",,,,,,,,,,,");
+
+		private String out;
+		private EventChange(String s){
+			out = s;
+		}
+
+		public String toString(){
+			return out;
+		}
+
+	}
+
+	private String getDirection(String last, String current){
+
+		if (last.equals("Communications")){
+
+			if (current.equals("Resource Management")){
+				return EventChange.COMMRMAN.toString();
+			} else if (current.equals("System Monitoring")){
+				return EventChange.COMMSYSM.toString();
+			} else if (current.equals("Tracking")){
+				return EventChange.COMMTRCK.toString();
+			}
+
+		} else if (last.equals("Resource Management")){
+
+			if (current.equals("Communications")){
+				return EventChange.RMANCOMM.toString();
+			} else if (current.equals("System Monitoring")){
+				return EventChange.RMANSYSM.toString();
+			} else if (current.equals("Tracking")){
+				return EventChange.RMANTRCK.toString();
+			}
+
+		} else if (last.equals("System Monitoring")){
+
+			if (current.equals("Communications")){
+				return EventChange.SYSMCOMM.toString();
+			} else if (current.equals("Resource Management")){
+				return EventChange.SYSMRMAN.toString();
+			} else if (current.equals("Tracking")){
+				return EventChange.SYSMTRCK.toString();
+			}
+
+		} else if (last.equals("Tracking")){
+
+			if (current.equals("Resource Management")){
+				return EventChange.TRCKRMAN.toString();
+			} else if (current.equals("Communications")){
+				return EventChange.TRCKCOMM.toString();
+			} else if (current.equals("System Monitoring")){
+				return EventChange.TRCKSYSM.toString();
+			}
+
+		}
+
+		//Something has gone wrong.
+		Console.log("WARNING: Statistics trasition could not be found. Directed graph may be inaccurate.");
+
+		return EventChange.NOCHANGE.toString();
+
 	}
 
 	public BufferedWriter getStats(BufferedWriter out){
@@ -309,55 +392,100 @@ public class Trial extends VBox{
 
 		String prepend = "\"" + tdfout.print(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
-		long dead = -1;
+		MATBEvent last = null; //Last event read.
+
 		long rt[] = new long[3];
+		int changeCounter = 0;
+		int blockCounter = 0;
 
 		for (int i = 0; i < 3; ++i){
 			rt[i] = -1;
 		}
 
-		for (EventContainer e : events){
+		for (int i = 0; i < events.size(); ++i){
 
-			MATBEvent row = e.matb;
+			MATBEvent row = events.get(i).matb;
 
-			if (row.event.matches("(Resource Management|System Monitoring|Communications)")){
+			if (row == null) continue; //Skip rows that don't have matb.
 
-				if (row.eventType == MATBEvent.EventType.SubjectResponse){
+			if (row.event.matches("(Resource Management|System Monitoring|Communications|Tracking)")){
 
-					long time = row.time.getMillis();
-					long curDead = 0;
+				MATBEvent next = null;
 
-					if (dead != -1){
-						curDead = time - dead; //Gets dead time since last response.
+				//Look aheads. (Expensive)
+				for (int j = i+1; j < events.size(); ++j){
+
+					MATBEvent e = events.get(j).matb;
+					
+					if (e == null) continue;
+					
+					if (e.event.matches("(Resource Management|System Monitoring|Communications|Tracking)") &&
+							(e.eventType == MATBEvent.EventType.SubjectResponse || e.eventType == MATBEvent.EventType.RecordingInterval)){
+						next = events.get(j).matb;
+						break;
 					}
+					
+				}
 
-					dead = time;
+				if (row.eventType == MATBEvent.EventType.SubjectResponse || row.event.equals("Tracking")){
+
+					//Reaction Time.
 
 					long reaction = -1;
+					long time = row.time.getMillis();
 
 					if (!row.comment.contains("Inappropriate")){
 
 						if (row.event.equals("Resource Management")){
 							reaction = time - rt[0];
-							rt[0] = -1;
 						} else if (row.event.equals("System Monitoring")){
 							reaction = time - rt[1];
-							rt[1] = -1;
 						} else if (row.event.equals("Communications")){
 							reaction = time - rt[2];
-							rt[2] = -1;
 						}
 
 					}
 
+					long lastDiff = 0;
+
+					boolean changeFlag = false;
+					if (last != null){
+						lastDiff = time - last.time.getMillis();
+						
+						if (!last.event.equals(row.event)){
+							changeCounter++;
+							changeFlag = true;
+						}
+					}
+
+					String blockSection;
+					
+					
+					//Block Change
+					if (next != null && last != null && (last.event.equals("Tracking") || row.event.equals("Tracking")) &&
+							!last.event.equals(row.event) && (row.event.equals("Tracking") == next.event.equals("Tracking"))){
+
+						blockSection = lastDiff + "," + (changeFlag?changeCounter:"") + "," + (blockCounter++) + "," + getDirection(last.event, row.event);
+
+					} else {
+						blockSection = "," + (changeFlag?changeCounter:"") + ",," + EventChange.NOCHANGE.toString();
+					}
+
+					//Print formatting.
+
+					String ret = prepend + "\"" + ReaderInterface.printDate(row.time) + "\","+ row.event +
+							"," + ((reaction!=-1)?reaction:"") + "," + lastDiff + "," + blockSection + ",";
+
 					try {
-						out.append(prepend + row.event + "," + ((reaction!=-1)?reaction:"") + "," + curDead + "\r\n");
+						out.append(ret + "\r\n");
 					} catch (IOException e1) {
 						Console.error("An error occured writting to the file!");
 					}
+					
+					last = row; //Keep track of what happened last. (If the event types are different then the block changed)
 
 				} else if (row.eventType == MATBEvent.EventType.EventProcessed){
-					
+
 					long time = row.time.getMillis();
 
 					if (row.event.equals("Resource Management")){

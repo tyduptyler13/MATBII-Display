@@ -39,7 +39,7 @@ public class Main extends Application {
 
 	@Override
 	public void start(Stage stage){
-		
+
 		openConsole();
 
 		this.stage = stage;
@@ -107,10 +107,10 @@ public class Main extends Application {
 
 	private Node createDisplayArea(){
 		content = new ScrollPane();
-		
+
 		//TODO Finish trial views.
 		Text t = new Text("This view is not yet available. Statistics will be available here soon.");
-		
+
 		content.setContent(t);
 
 		content.setPrefSize(500, 500);
@@ -157,11 +157,21 @@ public class Main extends Application {
 		FileChooser fc = new FileChooser();
 		fc.getExtensionFilters().addAll(ef);
 		fc.setTitle(title);
+
+		File f;
+
 		if (open){
-			return fc.showOpenDialog(stage);
+			f = fc.showOpenDialog(stage);
 		} else {
-			return fc.showSaveDialog(stage);
+			f = fc.showSaveDialog(stage);
 		}
+
+		if (!f.getName().endsWith(".csv")){
+			f = new File(f.getName() + ".csv");
+		}
+
+		return f;
+
 	}
 
 	private static void openConsole(){
@@ -174,14 +184,14 @@ public class Main extends Application {
 		ta.setPrefHeight(300);
 		ta.setPrefWidth(500);
 		ta.setEditable(false);
-		
+
 		Console.addOutput(new PrintInterface(){
 
 			@Override
 			public void print(String s) {
 				ta.appendText(s + "\r\n");
 			}
-			
+
 		});
 
 
@@ -190,9 +200,9 @@ public class Main extends Application {
 		console.setScene(s);
 
 		console.setTitle("MATBII-Console");
-		
+
 		console.show();
-		
+
 		Console.log("Loaded ConsoleGUI");
 
 	}
