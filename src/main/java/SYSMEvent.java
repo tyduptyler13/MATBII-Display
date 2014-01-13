@@ -38,7 +38,7 @@ public class SYSMEvent extends ReaderInterface{
 
 			String part = parts[i];
 
-			if (part.matches("^-?[0-9]\\d*(\\.\\d+)?$")){
+			if (part.matches("^-?[0-9]+(\\.[0-9])?$")){
 				rt = Float.parseFloat(part);
 			} else if (part.matches("^(Light|Scale)$")){
 				if (part == "Light"){

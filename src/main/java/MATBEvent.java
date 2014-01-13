@@ -108,7 +108,7 @@ public class MATBEvent extends ReaderInterface{
 	@Override
 	public String toString(){
 
-		String ret = ",\"" + ((eventNumber != -1)?eventNumber:"") + "\"";
+		String ret = "\"" + ((eventNumber != -1)?eventNumber:"") + "\"";
 
 		ret += ",\"" + eventType.type + "\"";
 

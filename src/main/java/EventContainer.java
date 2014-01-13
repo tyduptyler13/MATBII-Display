@@ -16,7 +16,7 @@ public class EventContainer implements Comparable<EventContainer>{
 	}
 
 	public static String getHeader(){
-		return MATBEvent.header + ',' + COMMEvent.header + ',' + RMANEvent.header + 
+		return "\"Time\"," + MATBEvent.header + ',' + COMMEvent.header + ',' + RMANEvent.header + 
 				',' + SYSMEvent.header + ',' + TRCKEvent.header + ',' + WRSEvent.header;
 	}
 

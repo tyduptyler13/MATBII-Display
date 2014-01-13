@@ -69,7 +69,7 @@ public abstract class FileReader extends TreeView<Node>{
 		MenuItem saveStatsButton = new MenuItem("Save Stats");
 		saveStatsButton.setOnAction(new SaveStatsEventHandle());
 		
-		menu.getItems().addAll(saveDataButton, saveStatsButton);
+		menu.getItems().addAll(saveDataButton);//FIXME, saveStatsButton);
 
 		setContextMenu(menu);
 

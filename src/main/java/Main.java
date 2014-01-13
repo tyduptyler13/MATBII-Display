@@ -188,7 +188,7 @@ public class Main extends Application {
 		Console.addOutput(new PrintInterface(){
 
 			@Override
-			public void print(String s) {
+			public synchronized void print(String s) {
 				ta.appendText(s + "\r\n");
 			}
 
