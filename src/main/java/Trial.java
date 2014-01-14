@@ -415,7 +415,8 @@ public class Trial extends VBox{
 			if (e == null) continue;
 
 			if (e.event.matches("(Resource Management|System Monitoring|Communications|Tracking)") &&
-					(e.eventType == MATBEvent.EventType.SubjectResponse || e.eventType == MATBEvent.EventType.RecordingInterval)){
+					(e.eventType == MATBEvent.EventType.SubjectResponse
+					|| (e.eventType == MATBEvent.EventType.RecordingInterval && e.event.equals("Tracking")))){
 				eventList.add(e);
 			}
 
@@ -491,7 +492,7 @@ public class Trial extends VBox{
 								//Reaction time is removed for the time being.
 								//if (e.eventType == MATBEvent.EventType.EventProcessed) continue;
 
-								if (e.eventType != MATBEvent.EventType.RecordingInterval && !e.event.equals("Tracking")){
+								if (e.eventType != MATBEvent.EventType.RecordingInterval){
 									//Skipping events of the same type. We used the same iterator so it will work.
 									list.previous(); //It will get incremented again at while.
 									break;
