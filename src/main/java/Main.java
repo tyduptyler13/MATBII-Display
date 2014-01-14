@@ -167,7 +167,7 @@ public class Main extends Application {
 		}
 
 		if (!f.getName().endsWith(".csv")){
-			f = new File(f.getName() + ".csv");
+			f = new File(f.getAbsolutePath() + ".csv");
 		}
 
 		return f;

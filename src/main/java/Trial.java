@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.ListIterator;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
@@ -303,7 +305,7 @@ public class Trial extends VBox{
 
 	public static String getStatsHeader(){
 		return header + ",\"Time\",\"Event\",\"Reaction time (Time Since Event)\",\"Time Since Last\"," +
-				"\"Live Time (Time between blocks)\",\"Event Changed (Counts up)\",\"Block ID (Tracking vs other)\",\"Comments\"," +
+				"\"Live Time (Time between blocks)\",\"Event Changed (Counts up)\",\"Block ID (Tracking vs other)\"," +
 				"\"COMM->SYSM\",\"COMM->RMAN\",\"COMM->TRCK\",\"SYSM->COMM\",\"SYSM->RMAN\",\"SYSM->TRCK\",\"RMAN->SYSM\",\""+
 				"RMAN->COMM\",\"RMAN->TRCK\",\"TRCK->SYSM\",\"TRCK->COMM\",\"TRCK->RMAN\"";
 	}
@@ -413,33 +415,41 @@ public class Trial extends VBox{
 			if (e == null) continue;
 
 			if (e.event.matches("(Resource Management|System Monitoring|Communications|Tracking)") &&
-					(e.eventType == MATBEvent.EventType.SubjectResponse || e.eventType == MATBEvent.EventType.RecordingInterval ||
-					e.eventType == MATBEvent.EventType.EventProcessed)){
+					(e.eventType == MATBEvent.EventType.SubjectResponse || e.eventType == MATBEvent.EventType.RecordingInterval)){
 				eventList.add(e);
 			}
 
 		}
 
 		boolean lastGroupTracking = false; //Magic flag for marking if tracking events are alone.
-		
-		//Go through all events.
-		for (int i = 0; i < eventList.size(); ++i){
+		ListIterator<MATBEvent> list = eventList.listIterator();
 
-			MATBEvent row = eventList.get(i);
+		//Go through all events.
+		while (list.hasNext()){
+
+			MATBEvent row = list.next();
 
 			if (row == null) continue; //Skip rows that don't have matb.
 
 			if (row.event.matches("(Resource Management|System Monitoring|Communications|Tracking)")){
 
-				if (row.eventType == MATBEvent.EventType.SubjectResponse || row.event.equals("Tracking")){
+				if (row.eventType == MATBEvent.EventType.SubjectResponse || row.eventType == MATBEvent.EventType.RecordingInterval){
 
 					//Reaction Time.
 
 					long reaction = -1;
 					long time = row.time.getMillis();
-					
-					MATBEvent next = getNext(i, eventList);
-					
+
+					MATBEvent next = null, next2 = null;
+
+					if (list.hasNext()){
+						next = list.next();
+						if (list.hasNext()){
+							next2 = list.next();
+							list.previous();
+						}
+						list.previous();
+					}
 
 					if (!row.comment.contains("Inappropriate")){
 
@@ -465,35 +475,39 @@ public class Trial extends VBox{
 					long liveTime = -1;
 
 					//Block Change and blocking (chunking) code.
-					if ( (lastGroupTracking = (next != null && row.event.equals("Tracking") && next.event.equals("Tracking"))) &&
-						 	(last != null && last.event.equals("Tracking") && !row.event.equals("Tracking")) && lastGroupTracking ){
-						
+					if ( (lastGroupTracking && last != null && last.event.equals("Tracking") && !row.event.equals("Tracking") ) ||
+							(lastGroupTracking = (next != null && row.event.equals("Tracking") && next.event.equals("Tracking"))) ||
+							(last != null && !last.event.equals("Tracking") && !row.event.equals("Tracking")) && !last.event.equals(row.event) ){
+
 						if (row.event.equals("Tracking")){
 							long start = time;
 							long end = 0;
 
-							for (int j = i; j < eventList.size(); ++j){
-								
-								MATBEvent e = eventList.get(j);
-								
-								if (e.eventType == MATBEvent.EventType.EventProcessed) continue;
-								
-								if (e.eventType != MATBEvent.EventType.RecordingInterval){
-									i = j - 1; //Skip further events. (They will be hidden) And i will count up again to the non tracking event.
+
+							while (list.hasNext()){
+
+								MATBEvent e = list.next();
+
+								//Reaction time is removed for the time being.
+								//if (e.eventType == MATBEvent.EventType.EventProcessed) continue;
+
+								if (e.eventType != MATBEvent.EventType.RecordingInterval && !e.event.equals("Tracking")){
+									//Skipping events of the same type. We used the same iterator so it will work.
+									list.previous(); //It will get incremented again at while.
 									break;
 								}
-								
+
 								end = e.time.getMillis();
-								
+
 							}
-							
+
 							liveTime = end - start;
 
 						} else {//Non tracking event block start. Keep track of the beginning. We will report the time at the end.
-							
+
 							lastGroupTracking = false;
 							blockStart = time;
-							
+
 						}
 
 
@@ -501,18 +515,17 @@ public class Trial extends VBox{
 								+ "," + (last!=null? getDirection(last.event, row.event) : EventChange.NOCHANGE.toString());
 
 					} else {
-						
+
 						//Super look ahead for tracking block to report live time.
-						
-						
-						if (i + 2 < eventList.size() && !row.event.equals("Tracking") && next.event.equals("Tracking")
-								&& getNext(eventList.indexOf(next), eventList).event.equals("Tracking")){
+
+						if (next!= null && next2 != null && !row.event.equals("Tracking") && next.event.equals("Tracking")
+								&& next2.event.equals("Tracking")){
 							liveTime = time - blockStart;
 						}
-						
+
 						blockSection = (liveTime!=-1?liveTime:"") + "," + (changeFlag?changeCounter:"") + ",," + EventChange.NOCHANGE.toString();
 					}
-					
+
 					long lastDiff = (last!=null ? time - last.time.getMillis() : 0);
 
 					//Print formatting.
@@ -528,18 +541,19 @@ public class Trial extends VBox{
 
 					last = row; //Keep track of what happened last. (If the event types are different then the block changed)
 
-				} else if (row.eventType == MATBEvent.EventType.EventProcessed){
-
-					long time = row.time.getMillis();
-
-					if (row.event.equals("Resource Management")){
-						rt[0] = time;
-					} else if (row.event.equals("System Monitoring")){
-						rt[1] = time;
-					} else if (row.event.equals("Communications")){
-						rt[2] = time;
-					}
-
+					//Reaction time is broken.
+//				} else if (row.eventType == MATBEvent.EventType.EventProcessed){
+//
+//					long time = row.time.getMillis();
+//
+//					if (row.event.equals("Resource Management")){
+//						rt[0] = time;
+//					} else if (row.event.equals("System Monitoring")){
+//						rt[1] = time;
+//					} else if (row.event.equals("Communications")){
+//						rt[2] = time;
+//					}
+//
 				}
 
 			}
@@ -548,7 +562,7 @@ public class Trial extends VBox{
 
 		return out;
 	}
-	
+
 	private MATBEvent getNext(int i, final ArrayList<MATBEvent> list){
 		for (int j = i + 1; j < list.size(); ++j){
 			MATBEvent e = list.get(j);
