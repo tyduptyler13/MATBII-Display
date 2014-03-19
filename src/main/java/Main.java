@@ -17,7 +17,9 @@ import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+
 import java.io.File;
+import java.io.FileNotFoundException;
 
 
 public class Main extends Application {
@@ -152,8 +154,9 @@ public class Main extends Application {
 	 * @param title - Title of window
 	 * @param open - Open existing file (If false, opens save dialog)
 	 * @return Chosen File
+	 * @throws FileNotFoundException 
 	 */
-	public File getFile(String title, FileChooser.ExtensionFilter[] ef , boolean open){
+	public File getFile(String title, FileChooser.ExtensionFilter[] ef , boolean open) throws FileNotFoundException{
 		FileChooser fc = new FileChooser();
 		fc.getExtensionFilters().addAll(ef);
 		fc.setTitle(title);
@@ -165,6 +168,8 @@ public class Main extends Application {
 		} else {
 			f = fc.showSaveDialog(stage);
 		}
+		
+		if (f == null) throw new FileNotFoundException();
 
 		if (!f.getName().endsWith(".csv")){
 			f = new File(f.getAbsolutePath() + ".csv");

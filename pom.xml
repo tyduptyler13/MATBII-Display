@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>colostate</groupId>
 	<artifactId>MATBII-Display</artifactId>
-	<version>0.1.9-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<name>MATBII-Display</name>
 	<description>This tool displays information from the MATBII program output</description>
 
@@ -25,7 +25,6 @@
 			<artifactId>joda-time</artifactId>
 			<version>2.3</version>
 		</dependency>
-
 
 	</dependencies>
 
@@ -62,5 +61,22 @@
 		</plugins>
 
 	</build>
+
+	<url>http://ci.myuplay.com/job/MATBII-Display/</url>
+
+	<scm>
+		<url>https://github.com/tyduptyler13/MATBII-Display</url>
+		<developerConnection>tyduptyler13</developerConnection>
+	</scm>
+
+	<issueManagement>
+		<system>Github</system>
+		<url>https://github.com/tyduptyler13/MATBII-Display/issues</url>
+	</issueManagement>
+
+	<ciManagement>
+		<url>http://ci.myuplay.com/job/MATBII-Display/</url>
+		<system>Jenkins</system>
+	</ciManagement>
 
 </project>

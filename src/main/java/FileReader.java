@@ -1,6 +1,7 @@
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -250,9 +251,10 @@ public abstract class FileReader extends TreeView<Node>{
 
 			FileChooser.ExtensionFilter[] efs = {new FileChooser.ExtensionFilter("CSV files", "*.csv")};
 
-			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
-
-			if (f == null){
+			File f;
+			try {
+				f = root.getFile("Save to", efs, false);
+			} catch (FileNotFoundException e1) {
 				Console.log("Save aborted.");
 				return;
 			}
@@ -349,9 +351,10 @@ public abstract class FileReader extends TreeView<Node>{
 			
 			FileChooser.ExtensionFilter[] efs = {new FileChooser.ExtensionFilter("CSV files", "*.csv")};
 
-			File f = root.getFile("Save to", efs, false);//Save to dialog using save method.
-
-			if (f == null){
+			File f;
+			try {
+				f = root.getFile("Save to", efs, false);
+			} catch (FileNotFoundException e1) {
 				Console.log("Save aborted.");
 				return;
 			}

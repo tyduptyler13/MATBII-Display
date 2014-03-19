@@ -1,9 +1,9 @@
-import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
 
 
 public class EventContainer implements Comparable<EventContainer>{
 
-	public DateTime time;
+	public LocalTime time;
 	public MATBEvent matb;
 	public COMMEvent comm;
 	public RMANEvent rman;
@@ -11,7 +11,7 @@ public class EventContainer implements Comparable<EventContainer>{
 	public TRCKEvent trck;
 	public WRSEvent wrs;
 	
-	public EventContainer(DateTime time){
+	public EventContainer(LocalTime time){
 		this.time = time;
 	}
 
@@ -87,7 +87,7 @@ public class EventContainer implements Comparable<EventContainer>{
 		return time.compareTo(e.time);
 	}
 	
-	public boolean equals(DateTime d){
+	public boolean equals(LocalTime d){
 		return d.equals(time);
 	}
 	

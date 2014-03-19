@@ -6,10 +6,12 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.ListIterator;
 
 import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
+import org.joda.time.Period;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -180,17 +182,23 @@ public class Trial extends VBox{
 			files = in;
 		}
 
-		private EventContainer getEvent(DateTime time){
+		private LinkedList<EventContainer> getEvents(LocalTime time){
 
+			LinkedList<EventContainer> eventlist = new LinkedList<EventContainer>();
+			
 			for (EventContainer e : events) {
 				if (e.equals(time)){
-					return e;
+					eventlist.add(e);
 				}
 			}
 
-			EventContainer ret = new EventContainer(time);
-			events.add(ret);
-			return ret;
+			if (eventlist.size() == 0){
+				EventContainer ret = new EventContainer(time);
+				events.add(ret);
+				eventlist.add(ret);
+			}
+			
+			return eventlist;
 
 		}
 
@@ -233,24 +241,34 @@ public class Trial extends VBox{
 							events.add(e);
 						} else if (f.getName().startsWith("COMM")){
 							COMMEvent event = new COMMEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).comm = event;
+							LocalTime time = event.parse(line);
+							for (EventContainer e : getEvents(time)){
+								e.comm = event;
+							}
 						} else if (f.getName().startsWith("SYSM")){
 							SYSMEvent event = new SYSMEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).sysm = event;
+							LocalTime time = event.parse(line);
+							for (EventContainer e : getEvents(time)){
+								e.sysm = event;
+							}
 						} else if (f.getName().startsWith("TRCK")){
 							TRCKEvent event = new TRCKEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).trck = event;
+							LocalTime time = event.parse(line);
+							for (EventContainer e : getEvents(time)){
+								e.trck = event;
+							}
 						} else if (f.getName().startsWith("RMAN")){
 							RMANEvent event = new RMANEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).rman = event;
+							LocalTime time = event.parse(line);
+							for (EventContainer e : getEvents(time)){
+								e.rman = event;
+							}
 						} else if (f.getName().startsWith("WRS")){
 							WRSEvent event = new WRSEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).wrs = event;
+							LocalTime time = event.parse(line);
+							for (EventContainer e : getEvents(time)){
+								e.wrs = event;
+							}
 						}
 
 					} catch (ParseException e) {
@@ -304,8 +322,8 @@ public class Trial extends VBox{
 	//Begin stats functions
 
 	public static String getStatsHeader(){
-		return header + ",\"Time\",\"Event\",\"Reaction time (Time Since Event)\",\"Time Since Last\"," +
-				"\"Live Time (Time between blocks)\",\"Event Changed (Counts up)\",\"Block ID (Tracking vs other)\"," +
+		return header + ",\"Time\",\"Event\",\"Time Since Last\"," +
+				"\"Block Duration\",\"Event Changed (Counts up)\",\"Block ID (Tracking vs other)\"," +
 				"\"COMM->SYSM\",\"COMM->RMAN\",\"COMM->TRCK\",\"SYSM->COMM\",\"SYSM->RMAN\",\"SYSM->TRCK\",\"RMAN->SYSM\",\""+
 				"RMAN->COMM\",\"RMAN->TRCK\",\"TRCK->SYSM\",\"TRCK->COMM\",\"TRCK->RMAN\"";
 	}
@@ -376,6 +394,8 @@ public class Trial extends VBox{
 				return EventChange.TRCKCOMM.toString();
 			} else if (current.equals("System Monitoring")){
 				return EventChange.TRCKSYSM.toString();
+			} else if (current.equals("Tracking")){
+				return EventChange.NOCHANGE.toString();//Special case.
 			}
 
 		}
@@ -392,186 +412,128 @@ public class Trial extends VBox{
 		String absolutePath = files[0].getAbsolutePath();
 		String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
 
+		//Data relevant to which file the data is coming from.
 		String prepend = "\"" + tdfout.print(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
-		MATBEvent last = null; //Last event read.
-		long blockStart = 0; //Start of a block. (For live time)
-
-		long rt[] = new long[3];
-		int changeCounter = 0;
-		int blockCounter = 0;
-
-		for (int i = 0; i < 3; ++i){
-			rt[i] = -1;
-		}
-
-		ArrayList<MATBEvent> eventList = new ArrayList<MATBEvent>();
+		LinkedList<EventContainer> eventList = new LinkedList<EventContainer>();
 
 		//Prelookup.
-		for (int i = 0; i < events.size(); ++i){
+		for (EventContainer event : events){
 
-			MATBEvent e = events.get(i).matb;
+			if (event.matb == null) continue;
 
-			if (e == null) continue;
-
-			if (e.event.matches("(Resource Management|System Monitoring|Communications|Tracking)") &&
-					(e.eventType == MATBEvent.EventType.SubjectResponse
-					|| (e.eventType == MATBEvent.EventType.RecordingInterval && e.event.equals("Tracking")))){
-				eventList.add(e);
+			if (event.matb.event.matches("(Resource Management|System Monitoring|Communications|Tracking)") && //Must be one of these types.
+					(event.matb.eventType == MATBEvent.EventType.SubjectResponse //Accept any subject responce types.
+					|| (event.matb.event.equals("Tracking")))){//Ignore track with c
+				eventList.add(event);
 			}
 
 		}
 
-		boolean lastGroupTracking = false; //Magic flag for marking if tracking events are alone.
-		ListIterator<MATBEvent> list = eventList.listIterator();
+		ListIterator<EventContainer> list = eventList.listIterator();
+
+		//Persistant variables.
+		EventContainer last = null;
+
+		int changeCounter = 0;
+		int blockCounter = 0;
 
 		//Go through all events.
 		while (list.hasNext()){
 
-			MATBEvent row = list.next();
+			EventContainer current = list.next();
+			MATBEvent row = current.matb;
 
 			if (row == null) continue; //Skip rows that don't have matb.
 
-			if (row.event.matches("(Resource Management|System Monitoring|Communications|Tracking)")){
+			//Prelookups.
+			EventContainer next1;
+			next1 = (list.hasNext()?list.next():null);
+			if (next1!=null) list.previous();
 
-				if (row.eventType == MATBEvent.EventType.SubjectResponse || row.eventType == MATBEvent.EventType.RecordingInterval){
+			//Change detection
+			boolean changeFlag = false;
+			if (last == null || !last.matb.event.equals(row.event) || (last.trck != null && current.trck != null && 
+					stateChange(last.trck, current.trck)) ){
+				changeCounter++;
+				changeFlag = true;
+			}
 
-					//Reaction Time.
+			String blockSection;
 
-					long reaction = -1;
-					long time = row.time.getMillis();
+			//Block Change and blocking (chunking) code.
+			//This is true if the last event differs with this event and the next event is the same as this event
+			//This also checks to make sure that tracking has the same compass as the next (these are considered differently)
+			if ( changeFlag && row.event.equals(next1.matb.event) && 
+					(next1.matb.event.equals("Tracking")? //Conditional conditional
+							!stateChange(current.trck, next1.trck):true)){ //TODO Possibly needs fixes.
 
-					MATBEvent next = null, next2 = null;
+				Period liveTime = null;
 
-					if (list.hasNext()){
-						next = list.next();
-						if (list.hasNext()){
-							next2 = list.next();
+				if (row.event.equals("Tracking")){
+
+					while (list.hasNext()){
+
+						EventContainer e = list.next();
+
+						//Tracking events will be groups into single events.
+						//Either we hit a non tracking event or we hit a idle tracking state.
+						if (!e.matb.event.equals("Tracking") || (e.trck != null && stateChange(e.trck, current.trck))){//Keep the null check!
+							//Skipping events of the same type. We used the same iterator so it will remove them from the list.
 							list.previous();
-						}
-						list.previous();
-					}
-
-					if (!row.comment.contains("Inappropriate")){
-
-						if (row.event.equals("Resource Management")){
-							reaction = time - rt[0];
-						} else if (row.event.equals("System Monitoring")){
-							reaction = time - rt[1];
-						} else if (row.event.equals("Communications")){
-							reaction = time - rt[2];
+							liveTime = new Period(row.time, e.time);
+							break;
 						}
 
 					}
 
-
-
-					boolean changeFlag = false;
-					if (last != null && !last.event.equals(row.event)){
-						changeCounter++;
-						changeFlag = true;
-					}
-
-					String blockSection;
-					long liveTime = -1;
-
-					//Block Change and blocking (chunking) code.
-					if ( (lastGroupTracking && last != null && last.event.equals("Tracking") && !row.event.equals("Tracking") ) ||
-							(lastGroupTracking = (next != null && row.event.equals("Tracking") && next.event.equals("Tracking"))) ||
-							(last != null && !last.event.equals("Tracking") && !row.event.equals("Tracking")) && !last.event.equals(row.event) ){
-
-						if (row.event.equals("Tracking")){
-							long start = time;
-							long end = 0;
-
-
-							while (list.hasNext()){
-
-								MATBEvent e = list.next();
-
-								//Reaction time is removed for the time being.
-								//if (e.eventType == MATBEvent.EventType.EventProcessed) continue;
-
-								if (e.eventType != MATBEvent.EventType.RecordingInterval){
-									//Skipping events of the same type. We used the same iterator so it will work.
-									list.previous(); //It will get incremented again at while.
-									break;
-								}
-
-								end = e.time.getMillis();
-
-							}
-
-							liveTime = end - start;
-
-						} else {//Non tracking event block start. Keep track of the beginning. We will report the time at the end.
-
-							lastGroupTracking = false;
-							blockStart = time;
-
-						}
-
-
-						blockSection = (liveTime!=-1?liveTime:"") + "," + (changeFlag?changeCounter:"") + "," + (++blockCounter)
-								+ "," + (last!=null? getDirection(last.event, row.event) : EventChange.NOCHANGE.toString());
-
-					} else {
-
-						//Super look ahead for tracking block to report live time.
-
-						if (next!= null && next2 != null && !row.event.equals("Tracking") && next.event.equals("Tracking")
-								&& next2.event.equals("Tracking")){
-							liveTime = time - blockStart;
-						}
-
-						blockSection = (liveTime!=-1?liveTime:"") + "," + (changeFlag?changeCounter:"") + ",," + EventChange.NOCHANGE.toString();
-					}
-
-					long lastDiff = (last!=null ? time - last.time.getMillis() : 0);
-
-					//Print formatting.
-
-					String ret = prepend + "\"" + ReaderInterface.printDate(row.time) + "\","+ row.event +
-							"," + ((reaction!=-1)?reaction:"") + "," + lastDiff + "," + blockSection + ",";
-
-					try {
-						out.append(ret + "\r\n");
-					} catch (IOException e1) {
-						Console.error("An error occured writting to the file!");
-					}
-
-					last = row; //Keep track of what happened last. (If the event types are different then the block changed)
-
-					//Reaction time is broken.
-//				} else if (row.eventType == MATBEvent.EventType.EventProcessed){
-//
-//					long time = row.time.getMillis();
-//
-//					if (row.event.equals("Resource Management")){
-//						rt[0] = time;
-//					} else if (row.event.equals("System Monitoring")){
-//						rt[1] = time;
-//					} else if (row.event.equals("Communications")){
-//						rt[2] = time;
-//					}
-//
 				}
 
+
+				blockSection = (liveTime!=null? printPeriod(liveTime):"") + "," + (changeFlag?changeCounter:"") + "," + (++blockCounter)
+						+ "," + (last!=null? getDirection(last.matb.event, row.event) : EventChange.NOCHANGE.toString());
+
+			} else {
+
+				blockSection = "," + (changeFlag?changeCounter:"") + ",," + EventChange.NOCHANGE.toString();
+
 			}
+
+			Period lastDiff = (last!=null ? new Period(last.time, row.time) : new Period(row.time.getMillisOfDay())); //TODO Check this.
+
+			//Print formatting.
+
+			String ret = prepend + "\"" + ReaderInterface.printDate(row.time) + "\","+ (row.event.equals("Tracking")?
+					(current.trck.compass.equals("C")?"Idle":"Tracking"):row.event) +
+					"," + printPeriod(lastDiff) + "," + blockSection + ",";
+
+			try {
+				out.append(ret + "\r\n");
+			} catch (IOException e1) {
+				Console.error("An error occured writting to the file!");
+			}
+
+			last = current;
 
 		}
 
 		return out;
 	}
 
-	private MATBEvent getNext(int i, final ArrayList<MATBEvent> list){
-		for (int j = i + 1; j < list.size(); ++j){
-			MATBEvent e = list.get(j);
-			if (e.eventType != MATBEvent.EventType.EventProcessed){
-				return e;
-			}
-		}
-		return null;
+	private static String printPeriod(Period p){
+		return ReaderInterface.printDate(new LocalTime(-61200000).plus(p));//Because someone is stupid and thinks 17 hours is 0 milliseconds. -_-
+	}
+
+	/**
+	 * True if the state changes from idle to tracking or tracking to idle.
+	 * @param a
+	 * @param b
+	 * @return
+	 */
+	private static boolean stateChange (TRCKEvent a, TRCKEvent b){
+		//Idle to tracking || tracking to idle.
+		return ((a.compass.equals("C") && !b.compass.equals("C")) || (!a.compass.equals("C") && b.compass.equals("C")));
+
 	}
 
 }

@@ -1,5 +1,6 @@
 import java.text.ParseException;
-import org.joda.time.DateTime;
+
+import org.joda.time.LocalTime;
 
 
 public class SYSMEvent extends ReaderInterface{
@@ -25,7 +26,7 @@ public class SYSMEvent extends ReaderInterface{
 	}
 
 	@Override
-	public DateTime parse(String line) throws ParseException {
+	public LocalTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
