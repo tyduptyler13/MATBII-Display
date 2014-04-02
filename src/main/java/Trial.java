@@ -185,7 +185,7 @@ public class Trial extends VBox{
 		private LinkedList<EventContainer> getEvents(LocalTime time){
 
 			LinkedList<EventContainer> eventlist = new LinkedList<EventContainer>();
-			
+
 			for (EventContainer e : events) {
 				if (e.equals(time)){
 					eventlist.add(e);
@@ -197,7 +197,7 @@ public class Trial extends VBox{
 				events.add(ret);
 				eventlist.add(ret);
 			}
-			
+
 			return eventlist;
 
 		}
@@ -289,6 +289,41 @@ public class Trial extends VBox{
 
 		}
 
+		private void fixCOMMs(){
+
+			ListIterator<EventContainer> list = events.listIterator();
+
+			while (list.hasNext()){
+
+				EventContainer e = list.next();
+
+				if (e.comm != null){
+
+					while (e != null){
+						e = fixCOMM(list, e.comm);
+					}
+
+				}
+
+			}
+
+
+		}
+
+		private EventContainer fixCOMM(ListIterator<EventContainer> list, COMMEvent start){
+
+			while (list.hasNext()){
+
+				EventContainer e = list.next();
+
+				//if (e.)
+
+			}
+
+			return null;
+
+		}
+
 		@Override
 		protected String call() throws Exception {
 
@@ -302,6 +337,14 @@ public class Trial extends VBox{
 			}
 
 			sortData();
+
+			updateMessage("Fixing COMM Events");
+			updateProgress(50, 100);
+			Console.log("Correcting reaction times for COMM events");
+
+			//fixCOMMs();
+
+			Console.log("Corrected COMM event reaction times.");
 
 			updateMessage("Processed");
 			updateProgress(100, 100);
@@ -478,7 +521,7 @@ public class Trial extends VBox{
 
 						//Tracking events will be groups into single events.
 						//Either we hit a non tracking event or we hit a idle tracking state.
-						if (!e.matb.event.equals("Tracking") || (e.trck != null && stateChange(e.trck, current.trck))){//Keep the null check!
+						if (!e.matb.event.equals("Tracking")){//Keep the null check!
 							//Skipping events of the same type. We used the same iterator so it will remove them from the list.
 							list.previous();
 							liveTime = new Period(row.time, e.time);
