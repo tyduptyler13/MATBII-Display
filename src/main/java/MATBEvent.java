@@ -4,7 +4,7 @@ import org.joda.time.LocalTime;
 
 public class MATBEvent extends ReaderInterface{
 
-	public enum EventType{
+	public static enum EventType{
 		EventProcessed("Event Processed"),
 		DeviceInit("Device Initialization"),
 		RecordingInterval("Recording Inverval Triggered"),

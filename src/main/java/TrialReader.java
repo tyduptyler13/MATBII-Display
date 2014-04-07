@@ -10,6 +10,7 @@ import java.util.ListIterator;
 import javafx.concurrent.Task;
 
 import org.joda.time.LocalTime;
+import org.joda.time.Period;
 
 /**
  * Concurrent method of reading files.
@@ -22,9 +23,9 @@ public class TrialReader extends Task<String>{
 
 	private final File[] files;
 	private final List<EventContainer> events;
-	
+
 	private final Trial t;
-	
+
 	private boolean hasGoodId = false;
 
 	public TrialReader(File[] in, Trial trial){
@@ -145,34 +146,36 @@ public class TrialReader extends Task<String>{
 
 		ListIterator<EventContainer> list = events.listIterator();
 
-		while (list.hasNext()){
+		while (list.hasNext()){//Stage first comm event. It is possible to never go into inner loop. (State 1)
 
-			EventContainer e = list.next();
+			EventContainer start = list.next();
 
-			if (e.comm != null){
+			if (start.matb != null && start.matb.eventType.equals(MATBEvent.EventType.EventProcessed)
+					&& start.matb.event.equals("Communications")){
 
-				while (e != null){
-					e = fixCOMM(list, e.comm);
+				while (list.hasNext()){//Iterate through all elements. (State 2)
+
+					EventContainer current = list.next();
+
+					if (current.matb != null && current.matb.eventType.equals(MATBEvent.EventType.EventProcessed)
+							&& current.matb.event.equals("Communications")){
+
+						start = current;
+						continue;
+
+					} else if (current.comm != null) {
+						Period p = new Period(start.time, current.time);
+						Console.print("Adjusting reaction time from " + current.comm.rt, "DEBUG");
+						current.comm.rt = p.getMinutes() * 60 + p.getSeconds() + ((float)p.getMillis()) / 1000; //Convert period to seconds with floating point.
+						Console.print("to " + current.comm.rt, "DEBUG");
+					}
+
 				}
 
 			}
 
 		}
 
-
-	}
-
-	private EventContainer fixCOMM(ListIterator<EventContainer> list, COMMEvent start){
-
-		while (list.hasNext()){
-
-			EventContainer e = list.next();
-
-			//if (e.)
-
-		}
-
-		return null;
 
 	}
 
