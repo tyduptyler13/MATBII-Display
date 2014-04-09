@@ -82,6 +82,19 @@ public class Trial extends VBox{
 
 		});
 
+		r.setOnFailed(new EventHandler<WorkerStateEvent>() {
+
+			@Override
+			public void handle(WorkerStateEvent t) {
+
+				Console.log("[Parser] Failed to parse! Check logs!");
+
+				t.getSource().getException().printStackTrace();
+
+			}
+
+		});
+
 		progress.progressProperty().bind(r.progressProperty());
 
 		return r;

@@ -3,7 +3,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -35,23 +34,53 @@ public class TrialReader extends Task<String>{
 		events = t.events;
 	}
 
-	private LinkedList<EventContainer> getEvents(LocalTime time){
-
-		LinkedList<EventContainer> eventlist = new LinkedList<EventContainer>();
+	/**
+	 * Specialized for matb event entry.
+	 * @param time
+	 * @return
+	 */
+	private EventContainer getEventMATB(LocalTime time){
 
 		for (EventContainer e : events) {
-			if (e.equals(time)){
-				eventlist.add(e);
+			if (e.equals(time) && e.matb == null){ //Special condition for matb events. A matb cannot already exist there or a new one must be created.
+				return e;
 			}
 		}
 
-		if (eventlist.size() == 0){
-			EventContainer ret = new EventContainer(time);
-			events.add(ret);
-			eventlist.add(ret);
+		EventContainer ret = new EventContainer(time);
+		events.add(ret);
+
+		return ret;
+
+	}
+
+	private EventContainer getEvent(LocalTime time){
+
+		for (EventContainer e : events) {
+			if (e.equals(time)){
+				return e;
+			}
 		}
 
-		return eventlist;
+		EventContainer ret = new EventContainer(time);
+		events.add(ret);
+
+		return ret;
+
+	}
+
+	private EventContainer getEvent(LocalTime time, String event){
+
+		for (EventContainer e : events) {
+			if (e.equals(time) && e.matb != null && e.matb.event.equals(event)){
+				return e;
+			}
+		}
+
+		EventContainer ret = new EventContainer(time);
+		events.add(ret);
+
+		return ret;
 
 	}
 
@@ -89,39 +118,28 @@ public class TrialReader extends Task<String>{
 
 					if (f.getName().startsWith("MATB")){
 						MATBEvent event = new MATBEvent();
-						EventContainer e = new EventContainer(event.parse(line));
-						e.matb = event;
-						events.add(e);
+						LocalTime time = event.parse(line);
+						getEventMATB(time).matb = event;
 					} else if (f.getName().startsWith("COMM")){
 						COMMEvent event = new COMMEvent();
 						LocalTime time = event.parse(line);
-						for (EventContainer e : getEvents(time)){
-							e.comm = event;
-						}
+						getEvent(time, "Communications").comm = event;
 					} else if (f.getName().startsWith("SYSM")){
 						SYSMEvent event = new SYSMEvent();
 						LocalTime time = event.parse(line);
-						for (EventContainer e : getEvents(time)){
-							e.sysm = event;
-						}
+						getEvent(time).sysm = event;
 					} else if (f.getName().startsWith("TRCK")){
 						TRCKEvent event = new TRCKEvent();
 						LocalTime time = event.parse(line);
-						for (EventContainer e : getEvents(time)){
-							e.trck = event;
-						}
+						getEvent(time, "Tracking").trck = event;
 					} else if (f.getName().startsWith("RMAN")){
 						RMANEvent event = new RMANEvent();
 						LocalTime time = event.parse(line);
-						for (EventContainer e : getEvents(time)){
-							e.rman = event;
-						}
+						getEvent(time).rman = event;
 					} else if (f.getName().startsWith("WRS")){
 						WRSEvent event = new WRSEvent();
 						LocalTime time = event.parse(line);
-						for (EventContainer e : getEvents(time)){
-							e.wrs = event;
-						}
+						getEvent(time).wrs = event;
 					}
 
 				} catch (ParseException e) {
@@ -145,6 +163,7 @@ public class TrialReader extends Task<String>{
 	private void fixCOMMs(){
 
 		ListIterator<EventContainer> list = events.listIterator();
+		int counter = 0;
 
 		while (list.hasNext()){//Stage first comm event. It is possible to never go into inner loop. (State 1)
 
@@ -153,21 +172,49 @@ public class TrialReader extends Task<String>{
 			if (start.matb != null && start.matb.eventType.equals(MATBEvent.EventType.EventProcessed)
 					&& start.matb.event.equals("Communications")){
 
+				EventContainer last = null;
+
 				while (list.hasNext()){//Iterate through all elements. (State 2)
 
 					EventContainer current = list.next();
 
-					if (current.matb != null && current.matb.eventType.equals(MATBEvent.EventType.EventProcessed)
-							&& current.matb.event.equals("Communications")){
+					if (current.matb != null && current.matb.event.equals("Communications")){
 
-						start = current;
-						continue;
+						counter++;
 
-					} else if (current.comm != null) {
-						Period p = new Period(start.time, current.time);
-						Console.print("Adjusting reaction time from " + current.comm.rt, "DEBUG");
-						current.comm.rt = p.getMinutes() * 60 + p.getSeconds() + ((float)p.getMillis()) / 1000; //Convert period to seconds with floating point.
-						Console.print("to " + current.comm.rt, "DEBUG");
+						if (current.matb.eventType.equals(MATBEvent.EventType.EventProcessed)){
+
+							//Total count needs to be tracked here.
+							if (last != null && last.comm != null){
+								last.comm.remarks = counter + " user interactions before enter";
+							}
+							counter = 0; //Reset counter.
+							start = current;
+							continue;
+
+						} else if (current.matb.eventType.equals(MATBEvent.EventType.SubjectResponse)) {
+
+							if (current.comm != null) {
+
+								Period p = new Period(start.time, current.time);
+								Console.print("Adjusting reaction time from " + current.comm.rt, "DEBUG");
+								current.comm.rt = p.getMinutes() * 60 + p.getSeconds() + ((float)p.getMillis()) / 1000; //Convert period to seconds with floating point.
+								Console.print("to " + current.comm.rt, "DEBUG");
+
+							} else {
+
+								Console.print("Creating custom COMM event for user interaction.", "DEBUG");
+								current.comm = new COMMEvent();
+								Period p = new Period(start.time, current.time);
+								current.comm.rt = current.comm.rt = p.getMinutes() * 60 + p.getSeconds() + ((float)p.getMillis()) / 1000; //Convert period to seconds with floating point.
+								current.comm.remarks = "Generated COMM event";
+
+							}
+
+						}
+
+						last = current;
+
 					}
 
 				}
@@ -175,7 +222,6 @@ public class TrialReader extends Task<String>{
 			}
 
 		}
-
 
 	}
 
