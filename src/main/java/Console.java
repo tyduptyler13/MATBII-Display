@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 
 public class Console{
-	
+
 	/**
 	 * Adds standard out to the list of outputs.
 	 */
@@ -11,7 +11,7 @@ public class Console{
 
 	public static String name = "MATBII-Display";
 	public static ArrayList<PrintInterface> outputs = new ArrayList<PrintInterface>();
-	
+
 	public static void addOutput(PrintInterface i){
 		outputs.add(i);
 	}
@@ -19,15 +19,15 @@ public class Console{
 	public static void print(String message){
 		printToAll("["+name+"] "+message);
 	}
-	
+
 	public static void error(String message){
 		print(message, "ERROR");
 	}
-	
+
 	public static void log(String message){
 		print(message, "log");
 	}
-	
+
 	/**
 	 * Customized printing for output.
 	 * <p>Format:
@@ -39,13 +39,13 @@ public class Console{
 	public static void print(String message, String channel){
 		printToAll("["+name+"]["+channel+"] " + message);
 	}
-	
-	protected static void printToAll(String s){
+
+	protected synchronized static void printToAll(String s){
 		for (PrintInterface i : outputs){
 			i.print(s);
 		}
 	}
-	
+
 	/**
 	 * The standard output for the interface.
 	 * @author Tyler
@@ -57,5 +57,5 @@ public class Console{
 			System.out.println(s);
 		}
 	}
-	
+
 }

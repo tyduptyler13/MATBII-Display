@@ -180,19 +180,19 @@ public class TrialReader extends Task<String>{
 
 					if (current.matb != null && current.matb.event.equals("Communications")){
 
-						counter++;
-
 						if (current.matb.eventType.equals(MATBEvent.EventType.EventProcessed)){
 
 							//Total count needs to be tracked here.
 							if (last != null && last.comm != null){
-								last.comm.remarks = counter + " user interactions before enter";
+								last.comm.interactions = Integer.toString(counter);
 							}
 							counter = 0; //Reset counter.
 							start = current;
 							continue;
 
 						} else if (current.matb.eventType.equals(MATBEvent.EventType.SubjectResponse)) {
+
+							counter++; //Should only be counting responses, not events.
 
 							if (current.comm != null) {
 

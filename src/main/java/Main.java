@@ -13,6 +13,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -25,7 +26,7 @@ import java.io.FileNotFoundException;
 public class Main extends Application {
 
 	private Stage stage;
-	private ScrollPane list;
+	private Pane list;
 	private ScrollPane content;
 
 	public static void main(String[] args) {
@@ -95,15 +96,15 @@ public class Main extends Application {
 
 	private Node createList(){
 
-		BorderPane bp = new BorderPane();
+		VBox container = new VBox();
 
-		list = new ScrollPane();
+		list = new Pane();
 		Text title = new Text("File Tree:");
 
-		bp.setTop(title);
-		bp.setCenter(list);
+		container.getChildren().add(title);
+		container.getChildren().add(list);
 
-		return bp;
+		return container;
 
 	}
 
@@ -125,7 +126,10 @@ public class Main extends Application {
 	}
 
 	public void setList(Node n){
-		list.setContent(n);
+		if (list.getChildren().size() == 0)
+			list.getChildren().add(n);
+		else
+			list.getChildren().set(0, n);
 	}
 
 	protected void onOpenDirectory(){
@@ -168,7 +172,7 @@ public class Main extends Application {
 		} else {
 			f = fc.showSaveDialog(stage);
 		}
-		
+
 		if (f == null) throw new FileNotFoundException();
 
 		if (!f.getName().endsWith(".csv")){
