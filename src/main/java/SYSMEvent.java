@@ -62,7 +62,7 @@ public class SYSMEvent extends ReaderInterface{
 	@Override
 	public String toString() {
 
-		String ret = "\"" + (Float.isNaN(rt)?rt:"") + "\",\"" + (system==System.Light?"Light":"Scale") +
+		String ret = "\"" + (Float.isNaN(rt)?"":rt) + "\",\"" + (system==System.Light?"Light":"Scale") +
 				"\",\"" + ls + "\",\"" + (sysok!=null?sysok:"") + "\",\"" + remarks + "\"";
 
 		return ret;
