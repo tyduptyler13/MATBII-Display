@@ -1,15 +1,14 @@
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.ListIterator;
 
 import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
+import org.joda.time.Period;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -23,21 +22,19 @@ import javafx.scene.text.Text;
 
 public class Trial extends VBox{
 
-	private Text title;
-
-	private boolean hasGoodId = false;
+	public Text title;
 
 	private Node content;
-	private String id;
-	private final DateTime timestamp;
+	public String id;
+	public final DateTime timestamp;
 	private ProgressBar progress;
 
 	private final File[] files;
 
-	private static final DateTimeFormatter tdfin = DateTimeFormat.forPattern("yyyy_MMddHHmm");
-	private static final DateTimeFormatter tdfout = DateTimeFormat.forPattern("yyyy/MM/dd hh:mma");
+	public static final DateTimeFormatter tdfin = DateTimeFormat.forPattern("yyyy_MMddHHmm");
+	public static final DateTimeFormatter tdfout = DateTimeFormat.forPattern("yyyy/MM/dd hh:mma");
 
-	private ArrayList<EventContainer> events = new ArrayList<EventContainer>();
+	public ArrayList<EventContainer> events = new ArrayList<EventContainer>();
 
 	/**
 	 * Defines the default header for this scope of printing.
@@ -72,7 +69,7 @@ public class Trial extends VBox{
 
 	public Task<String> setupTask(){
 
-		Reader r = new Reader(files);
+		TrialReader r = new TrialReader(files, this);
 		r.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
 
 			@Override
@@ -162,135 +159,6 @@ public class Trial extends VBox{
 		}
 
 		return out;
-	}
-
-	/**
-	 * Concurrent method of reading files.
-	 * 
-	 * Returns status message when finished.
-	 * @author Tyler
-	 *
-	 */
-	private final class Reader extends Task<String>{
-
-		private final File[] files;
-
-		public Reader(File[] in){
-			super();
-			files = in;
-		}
-
-		private EventContainer getEvent(DateTime time){
-
-			for (EventContainer e : events) {
-				if (e.equals(time)){
-					return e;
-				}
-			}
-
-			EventContainer ret = new EventContainer(time);
-			events.add(ret);
-			return ret;
-
-		}
-
-		private void readFile(File f) throws IOException{
-
-			if (f.getName().endsWith("csv")) return; //Skip csv files. It breaks things.
-
-			BufferedReader in = null;
-
-			updateMessage("Reading file.");
-
-			try{
-
-				in = new BufferedReader( new FileReader(f));
-
-				String line;
-				while ((line = in.readLine()) != null){
-
-					line = line.trim();
-
-					if (line.isEmpty() || line.charAt(0) == '#'){
-
-						if (!hasGoodId && line.contains("Events Filename")){
-
-							id = line.split(":\\s*")[1].trim();
-							title.setText("Trial " + id + " " + tdfout.print(timestamp));
-							hasGoodId = true; //Skip this change in the future. No need to waste time.
-
-						}
-
-						continue;
-					}
-
-					try{
-
-						if (f.getName().startsWith("MATB")){
-							MATBEvent event = new MATBEvent();
-							EventContainer e = new EventContainer(event.parse(line));
-							e.matb = event;
-							events.add(e);
-						} else if (f.getName().startsWith("COMM")){
-							COMMEvent event = new COMMEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).comm = event;
-						} else if (f.getName().startsWith("SYSM")){
-							SYSMEvent event = new SYSMEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).sysm = event;
-						} else if (f.getName().startsWith("TRCK")){
-							TRCKEvent event = new TRCKEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).trck = event;
-						} else if (f.getName().startsWith("RMAN")){
-							RMANEvent event = new RMANEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).rman = event;
-						} else if (f.getName().startsWith("WRS")){
-							WRSEvent event = new WRSEvent();
-							DateTime time = event.parse(line);
-							getEvent(time).wrs = event;
-						}
-
-					} catch (ParseException e) {
-						continue; //We can handle files that are poorly parsed by skipping lines.
-					} catch (Exception e){
-						Console.error("An error occured in parsing! The results are likely unusable. Details printed to System.err.");
-						e.printStackTrace(System.err);
-					}
-				}
-
-			} finally{
-
-				in.close();
-
-			}
-
-			updateMessage("Finished reading file.");
-
-		}
-
-		@Override
-		protected String call() throws Exception {
-
-			updateMessage("Ready to read");
-			updateProgress(10, 100);
-
-			for (File f : files){
-
-				readFile(f);
-
-			}
-
-			sortData();
-
-			updateMessage("Processed");
-			updateProgress(100, 100);
-
-			return "Successfully read in Trial " + id;
-		}
-
 	}
 
 	public void sortData(){
@@ -395,7 +263,7 @@ public class Trial extends VBox{
 		String prepend = "\"" + tdfout.print(timestamp) + "\",\"" + id + "\",\"" + filePath + "\",";
 
 		MATBEvent last = null; //Last event read.
-		long blockStart = 0; //Start of a block. (For live time)
+		LocalTime blockStart = new LocalTime(-61200000); //Start of a block. (For live time)
 
 		long rt[] = new long[3];
 		int changeCounter = 0;
@@ -438,8 +306,7 @@ public class Trial extends VBox{
 
 					//Reaction Time.
 
-					long reaction = -1;
-					long time = row.time.getMillis();
+					LocalTime time = row.time;
 
 					MATBEvent next = null, next2 = null;
 
@@ -452,20 +319,6 @@ public class Trial extends VBox{
 						list.previous();
 					}
 
-					if (!row.comment.contains("Inappropriate")){
-
-						if (row.event.equals("Resource Management")){
-							reaction = time - rt[0];
-						} else if (row.event.equals("System Monitoring")){
-							reaction = time - rt[1];
-						} else if (row.event.equals("Communications")){
-							reaction = time - rt[2];
-						}
-
-					}
-
-
-
 					boolean changeFlag = false;
 					if (last != null && !last.event.equals(row.event)){
 						changeCounter++;
@@ -473,7 +326,7 @@ public class Trial extends VBox{
 					}
 
 					String blockSection;
-					long liveTime = -1;
+					Period liveTime = null;
 
 					//Block Change and blocking (chunking) code.
 					if ( (lastGroupTracking && last != null && last.event.equals("Tracking") && !row.event.equals("Tracking") ) ||
@@ -481,8 +334,7 @@ public class Trial extends VBox{
 							(last != null && !last.event.equals("Tracking") && !row.event.equals("Tracking")) && !last.event.equals(row.event) ){
 
 						if (row.event.equals("Tracking")){
-							long start = time;
-							long end = 0;
+							LocalTime end = null;
 
 
 							while (list.hasNext()){
@@ -498,11 +350,11 @@ public class Trial extends VBox{
 									break;
 								}
 
-								end = e.time.getMillis();
+								end = e.time;
 
 							}
 
-							liveTime = end - start;
+							liveTime = new Period(time, end);
 
 						} else {//Non tracking event block start. Keep track of the beginning. We will report the time at the end.
 
@@ -512,7 +364,7 @@ public class Trial extends VBox{
 						}
 
 
-						blockSection = (liveTime!=-1?liveTime:"") + "," + (changeFlag?changeCounter:"") + "," + (++blockCounter)
+						blockSection = (liveTime!=null?printPeriod(liveTime):"") + "," + (changeFlag?changeCounter:"") + "," + (++blockCounter)
 								+ "," + (last!=null? getDirection(last.event, row.event) : EventChange.NOCHANGE.toString());
 
 					} else {
@@ -521,18 +373,18 @@ public class Trial extends VBox{
 
 						if (next!= null && next2 != null && !row.event.equals("Tracking") && next.event.equals("Tracking")
 								&& next2.event.equals("Tracking")){
-							liveTime = time - blockStart;
+							liveTime = new Period(blockStart, time);
 						}
 
-						blockSection = (liveTime!=-1?liveTime:"") + "," + (changeFlag?changeCounter:"") + ",," + EventChange.NOCHANGE.toString();
+						blockSection = (liveTime!=null?printPeriod(liveTime):"") + "," + (changeFlag?changeCounter:"") + ",," + EventChange.NOCHANGE.toString();
 					}
 
-					long lastDiff = (last!=null ? time - last.time.getMillis() : 0);
+					Period lastDiff = (last!=null ? new Period(last.time, row.time) : new Period(row.time.getMillisOfDay()));
 
 					//Print formatting.
 
 					String ret = prepend + "\"" + ReaderInterface.printDate(row.time) + "\","+ row.event +
-							"," + ((reaction!=-1)?reaction:"") + "," + lastDiff + "," + blockSection + ",";
+							",," + printPeriod(lastDiff) + "," + blockSection + ",";
 
 					try {
 						out.append(ret + "\r\n");
@@ -542,19 +394,6 @@ public class Trial extends VBox{
 
 					last = row; //Keep track of what happened last. (If the event types are different then the block changed)
 
-					//Reaction time is broken.
-//				} else if (row.eventType == MATBEvent.EventType.EventProcessed){
-//
-//					long time = row.time.getMillis();
-//
-//					if (row.event.equals("Resource Management")){
-//						rt[0] = time;
-//					} else if (row.event.equals("System Monitoring")){
-//						rt[1] = time;
-//					} else if (row.event.equals("Communications")){
-//						rt[2] = time;
-//					}
-//
 				}
 
 			}
@@ -564,14 +403,8 @@ public class Trial extends VBox{
 		return out;
 	}
 
-	private MATBEvent getNext(int i, final ArrayList<MATBEvent> list){
-		for (int j = i + 1; j < list.size(); ++j){
-			MATBEvent e = list.get(j);
-			if (e.eventType != MATBEvent.EventType.EventProcessed){
-				return e;
-			}
-		}
-		return null;
+	private static String printPeriod(Period p){
+		return ReaderInterface.printDate(new LocalTime(-61200000).plus(p));//Because someone is stupid and thinks 17 hours is 0 milliseconds. -_-
 	}
 
 }

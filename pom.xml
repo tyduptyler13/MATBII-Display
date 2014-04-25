@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>colostate</groupId>
 	<artifactId>MATBII-Display</artifactId>
-	<version>0.1.9-SNAPSHOT</version>
+	<version>0.1.10-SNAPSHOT</version>
 	<name>MATBII-Display</name>
 	<description>This tool displays information from the MATBII program output</description>
 

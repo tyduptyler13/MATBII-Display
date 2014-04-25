@@ -1,14 +1,14 @@
 import java.text.ParseException;
 
-import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
 
 
 
 public class COMMEvent extends ReaderInterface{
 
 	public static final String header = "\"RT\",\"Ship\",\"Radio_T\",\"Freq_T\","
-			+ "\"Radio_S\",\"Freq_S\",\"R_Ok\",\"F_Ok\",\"Remarks\"";
-	public static final int hcount = 9;
+			+ "\"Radio_S\",\"Freq_S\",\"R_Ok\",\"F_Ok\",\"Interactions\",\"Remarks\"";
+	public static final int hcount = 10;
 
 	public float rt = Float.NaN;
 	public String ship = "";
@@ -18,7 +18,9 @@ public class COMMEvent extends ReaderInterface{
 	public String freqs = "";
 	public boolean rok;
 	public boolean fok;
+	public String interactions = "";
 	public String remarks = "";
+	private boolean isValid = false;
 
 	public COMMEvent(){}
 
@@ -27,7 +29,7 @@ public class COMMEvent extends ReaderInterface{
 	}
 
 	@Override
-	public DateTime parse(String line) throws ParseException {
+	public LocalTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
@@ -57,6 +59,8 @@ public class COMMEvent extends ReaderInterface{
 			throw new ParseException("Unexpected COMM format!", 11);
 		}
 
+		isValid = true;
+
 		return time;
 
 	}
@@ -68,9 +72,14 @@ public class COMMEvent extends ReaderInterface{
 			return ",,,,,,,\"" + remarks + "\"";
 		}
 
-		String ret = rt + "," + ship + "," + radiot + "," +
-				freqt + "," + radios + "," + freqs + "," + rok +
-				"," + fok + ",\"" + remarks + "\"";
+		String ret;
+		if (isValid){
+			ret = rt + "," + ship + "," + radiot + "," +
+					freqt + "," + radios + "," + freqs + "," + rok +
+					"," + fok + "," + interactions + ",\"" + remarks + "\"";
+		} else {
+			ret = rt + ",,,,,,,,,\"" + remarks + "\""; //Short and sweet version.
+		}
 
 		return ret;
 

@@ -1,5 +1,7 @@
 import java.text.ParseException;
+
 import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -32,7 +34,7 @@ public class TRCKEvent extends ReaderInterface{
 	}
 
 	@Override
-	public DateTime parse(String line) throws ParseException {
+	public LocalTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);

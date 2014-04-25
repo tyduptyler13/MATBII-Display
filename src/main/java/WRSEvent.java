@@ -1,6 +1,6 @@
 import java.text.ParseException;
 
-import org.joda.time.DateTime;
+import org.joda.time.LocalTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -12,7 +12,7 @@ public class WRSEvent extends ReaderInterface{
 
 	public static final DateTimeFormatter stf = DateTimeFormat.forPattern("mm:ss.S");
 
-	public DateTime time2;
+	public LocalTime time2;
 	public int menl;
 	public int phys;
 	public int temp;
@@ -23,7 +23,7 @@ public class WRSEvent extends ReaderInterface{
 	public String remarks = "";
 
 	@Override
-	public DateTime parse(String line) throws ParseException {
+	public LocalTime parse(String line) throws ParseException {
 
 		if (line.isEmpty() || line.charAt(0) == '#')
 			throw new ParseException("Invalid line: '" + line + "'", 0);
@@ -34,7 +34,7 @@ public class WRSEvent extends ReaderInterface{
 
 		if (parts.length >= 9){
 
-			time2 = stf.parseDateTime(parts[1]);
+			time2 = stf.parseLocalTime(parts[1]);
 			menl = Integer.parseInt(parts[2]);
 			phys = Integer.parseInt(parts[3]);
 			temp = Integer.parseInt(parts[4]);
