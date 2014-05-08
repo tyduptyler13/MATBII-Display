@@ -197,13 +197,13 @@ public class TrialReader extends Task<String>{
 							if (current.comm != null) {
 
 								Period p = new Period(start.time, current.time);
-								Console.print("Adjusting reaction time from " + current.comm.rt, "DEBUG");
+								//Console.print("Adjusting reaction time from " + current.comm.rt, "DEBUG");
 								current.comm.rt = p.getMinutes() * 60 + p.getSeconds() + ((float)p.getMillis()) / 1000; //Convert period to seconds with floating point.
-								Console.print("to " + current.comm.rt, "DEBUG");
+								//Console.print("to " + current.comm.rt, "DEBUG");
 
 							} else {
 
-								Console.print("Creating custom COMM event for user interaction.", "DEBUG");
+								//Console.print("Creating custom COMM event for user interaction.", "DEBUG");
 								current.comm = new COMMEvent();
 								Period p = new Period(start.time, current.time);
 								current.comm.rt = current.comm.rt = p.getMinutes() * 60 + p.getSeconds() + ((float)p.getMillis()) / 1000; //Convert period to seconds with floating point.
@@ -241,11 +241,11 @@ public class TrialReader extends Task<String>{
 
 		updateMessage("Fixing COMM Events");
 		updateProgress(50, 100);
-		Console.log("Correcting reaction times for COMM events");
+		//Console.log("Correcting reaction times for COMM events");
 
 		fixCOMMs();
 
-		Console.log("Corrected COMM event reaction times.");
+		//Console.log("Corrected COMM event reaction times.");
 
 		updateMessage("Processed");
 		updateProgress(100, 100);
