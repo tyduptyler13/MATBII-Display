@@ -330,7 +330,7 @@ public class Trial extends VBox{
 			//Block Change and blocking (chunking) code.
 			//This is true if the last event differs with this event and the next event is the same as this event
 			//This also checks to make sure that tracking has the same compass as the next (these are considered differently)
-			if ( changeFlag && row.event.equals(next1.matb.event) && 
+			if ( changeFlag && next1 != null && row.event.equals(next1.matb.event) && 
 					(next1.matb.event.equals("Tracking")? //Conditional conditional
 							!stateChange(current.trck, next1.trck):true)){ //TODO Possibly needs fixes.
 
