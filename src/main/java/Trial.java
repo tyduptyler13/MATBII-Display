@@ -10,7 +10,6 @@ import java.util.ListIterator;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Node;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -25,7 +24,6 @@ public class Trial extends VBox{
 
 	public Text title;
 
-	private Node content;
 	public String id;
 	public final DateTime timestamp;
 	private ProgressBar progress;
@@ -194,7 +192,7 @@ public class Trial extends VBox{
 				"RMAN->COMM\",\"RMAN->TRCK\",\"TRCK->SYSM\",\"TRCK->COMM\",\"TRCK->RMAN\"";
 	}
 
-	private enum EventChange{
+	private static enum EventChange{
 		COMMSYSM("1,,,,,,,,,,,"),
 		COMMRMAN(",1,,,,,,,,,,"),
 		COMMTRCK(",,1,,,,,,,,,"),
@@ -220,7 +218,7 @@ public class Trial extends VBox{
 
 	}
 
-	private String getDirection(String last, String current){
+	private static String getDirection(String last, String current){
 
 		if (last.equals("Communications")){
 
@@ -267,8 +265,22 @@ public class Trial extends VBox{
 		}
 
 		//Something has gone wrong.
-		Console.log("WARNING: Statistics trasition could not be found. Directed graph may be inaccurate.");
+		//This isn't true anymore. We do checks all the time regardless of change detected.
+		//Console.log("WARNING: Statistics trasition could not be found. Directed graph may be inaccurate.");
 
+		return EventChange.NOCHANGE.toString();
+
+	}
+
+	private static String advGetDirection(String lastXIdle, EventContainer current){
+
+		if (lastXIdle != null && !isIdle(current)){ //We have an event that isn't null before us and the current event isn't null
+
+			return getDirection(lastXIdle, current.matb.event);
+
+		}
+
+		//If we can't have the above conditions then return nochange (empty)
 		return EventChange.NOCHANGE.toString();
 
 	}
@@ -300,6 +312,7 @@ public class Trial extends VBox{
 
 		//Persistant variables.
 		EventContainer last = null;
+		String lastXIdle = null;
 
 		int changeCounter = 0;
 		int blockCounter = 0;
@@ -332,7 +345,7 @@ public class Trial extends VBox{
 			//This also checks to make sure that tracking has the same compass as the next (these are considered differently)
 			if ( changeFlag && row.event.equals(next1.matb.event) && 
 					(next1.matb.event.equals("Tracking")? //Conditional conditional
-							!stateChange(current.trck, next1.trck):true)){ //TODO Possibly needs fixes.
+							!stateChange(current.trck, next1.trck):true)){
 
 				Period liveTime = null;
 
@@ -357,15 +370,15 @@ public class Trial extends VBox{
 
 
 				blockSection = (liveTime!=null? printPeriod(liveTime):"") + "," + (changeFlag?changeCounter:"") + "," + (++blockCounter)
-						+ "," + (last!=null? getDirection(last.matb.event, row.event) : EventChange.NOCHANGE.toString());
+						+ "," + advGetDirection(lastXIdle, current);
 
-			} else {
+			} else { //Not a tracking block
 
-				blockSection = "," + (changeFlag?changeCounter:"") + ",," + EventChange.NOCHANGE.toString();
+				blockSection = "," + (changeFlag?changeCounter:"") + ",," + advGetDirection(lastXIdle, current);
 
 			}
 
-			Period lastDiff = (last!=null ? new Period(last.time, row.time) : new Period(row.time.getMillisOfDay())); //TODO Check this.
+			Period lastDiff = (last!=null ? new Period(last.time, row.time) : new Period(row.time.getMillisOfDay()));
 
 			//Print formatting.
 
@@ -380,10 +393,17 @@ public class Trial extends VBox{
 			}
 
 			last = current;
+			//Special case of tracking non idle for switching.
+			if (!isIdle(current))//If not idle.
+				lastXIdle = current.matb.event;//Track non idle.
 
 		}
 
 		return out;
+	}
+
+	private static boolean isIdle(EventContainer current){
+		return (current.trck != null && current.trck.compass.equals("C"));
 	}
 
 	private static String printPeriod(Period p){

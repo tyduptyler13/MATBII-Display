@@ -1,3 +1,6 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -5,29 +8,24 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-
-import java.io.File;
-import java.io.FileNotFoundException;
+import javafx.stage.WindowEvent;
 
 
 public class Main extends Application {
 
-	private Stage stage;
-	private Pane list;
-	private ScrollPane content;
+	private static Stage window;
+	private static Stage consoleWindow;
+	private static final TextArea console = new TextArea();
+	private static BorderPane list;
 
 	public static void main(String[] args) {
 
@@ -43,27 +41,32 @@ public class Main extends Application {
 	@Override
 	public void start(Stage stage){
 
-		openConsole();
-
-		this.stage = stage;
+		window = stage;
 
 		BorderPane border = new BorderPane();
 
 		border.setTop(createMenu());
 
-		final SplitPane sp = new SplitPane();
-		final StackPane sp1 = new StackPane();
-		sp1.getChildren().add(createList());
-		final StackPane sp2 = new StackPane();
-		sp2.getChildren().add(createDisplayArea());
-		sp.getItems().addAll(sp1, sp2);
-		sp.setDividerPositions(.3);
-		border.setCenter(sp);
+		border.setCenter(createDisplay());
 
 		Scene scene = new Scene(border);
 		stage.setScene(scene);
 		stage.setTitle("MATBII-Display");
 		stage.show();
+
+		consoleWindow = new Stage();
+
+		openConsole();
+
+		consoleWindow.show();
+
+		stage.setOnCloseRequest(new EventHandler<WindowEvent>(){
+			public void handle(WindowEvent e){
+				consoleWindow.close();
+			}
+		});
+
+		stage.toFront();
 
 	}
 
@@ -94,60 +97,33 @@ public class Main extends Application {
 
 	}
 
-	private Node createList(){
+	private Node createDisplay(){
 
-		VBox container = new VBox();
-
-		list = new Pane();
+		list = new BorderPane();
 		Text title = new Text("File Tree:");
 
-		container.getChildren().add(title);
-		container.getChildren().add(list);
+		list.setTop(title);
 
-		return container;
+		list.setPrefHeight(300);
+		list.setPrefWidth(500);
 
-	}
+		return list;
 
-	private Node createDisplayArea(){
-		content = new ScrollPane();
-
-		//TODO Finish trial views.
-		Text t = new Text("This view is not yet available. Statistics will be available here soon.");
-
-		content.setContent(t);
-
-		content.setPrefSize(500, 500);
-
-		return content;
-	}
-
-	public void setContent(Node n){
-		content.setContent(n);
 	}
 
 	public void setList(Node n){
-		if (list.getChildren().size() == 0)
-			list.getChildren().add(n);
-		else
-			list.getChildren().set(0, n);
+		list.setCenter(n);
 	}
 
 	protected void onOpenDirectory(){
 
 		DirectoryChooser chooser = new DirectoryChooser();
 		chooser.setTitle("Choose the top directory");
-		File file = chooser.showDialog(stage);
+		File file = chooser.showDialog(window);
 
 		if (file == null) return;
 
-		FileReader fr = new FileReader(file, this){
-
-			@Override
-			public void display(Node n) {
-				setContent(n);
-			}
-
-		};
+		FileReader fr = new FileReader(file, this);
 
 		setList(fr);
 
@@ -168,9 +144,9 @@ public class Main extends Application {
 		File f;
 
 		if (open){
-			f = fc.showOpenDialog(stage);
+			f = fc.showOpenDialog(window);
 		} else {
-			f = fc.showSaveDialog(stage);
+			f = fc.showSaveDialog(window);
 		}
 
 		if (f == null) throw new FileNotFoundException();
@@ -185,32 +161,23 @@ public class Main extends Application {
 
 	private static void openConsole(){
 
-
-		final Stage console = new Stage();
-		//console.initStyle(StageStyle.UTILITY);
-
-		final TextArea ta = new TextArea();
-		ta.setPrefHeight(300);
-		ta.setPrefWidth(500);
-		ta.setEditable(false);
+		console.setPrefHeight(300);
+		console.setPrefWidth(500);
+		console.setEditable(false);
 
 		Console.addOutput(new PrintInterface(){
 
 			@Override
 			public synchronized void print(String s) {
-				ta.appendText(s + "\r\n");
+				console.appendText(s + "\r\n");
 			}
 
 		});
 
+		final Scene s = new Scene(console);
+		consoleWindow.setScene(s);
 
-
-		final Scene s = new Scene(ta);
-		console.setScene(s);
-
-		console.setTitle("MATBII-Console");
-
-		console.show();
+		consoleWindow.setTitle("MATBII-Console");
 
 		Console.log("Loaded ConsoleGUI");
 

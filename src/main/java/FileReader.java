@@ -22,7 +22,7 @@ import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 
 
-public abstract class FileReader extends TreeView<Node>{
+public class FileReader extends TreeView<Node>{
 
 	private final Main root;
 	private ArrayList<Task<String>> tasks = new ArrayList<Task<String>>();
@@ -37,7 +37,7 @@ public abstract class FileReader extends TreeView<Node>{
 
 			if (f.isFile()){
 
-				if (f.getName().matches("(COMM|MATB|RMAN|SYSM|TRCK|WRS)_[0-9]{4}_[0-9]{8}\\.(txt|csv)"))
+				if (f.getName().matches("(COMM|MATB|RMAN|SYSM|TRCK|WRS)_[0-9]{4}_[0-9]{8}\\.(txt)"))
 					return true;
 
 			}
@@ -191,8 +191,6 @@ public abstract class FileReader extends TreeView<Node>{
 
 	}
 
-	public abstract void display(Node n);
-
 	/**
 	 * Concurrent method for writing files.
 	 * 
@@ -330,8 +328,8 @@ public abstract class FileReader extends TreeView<Node>{
 				
 				super.failed();
 				updateMessage("Failed");
-				Console.error("An error occured saving the file. Printed exception to System.err");
 				e.printStackTrace(System.err);
+				this.setException(e);
 				return "Failed to save file! (" + file.getName() +")";
 				
 			} finally {
