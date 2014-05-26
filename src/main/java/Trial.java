@@ -355,13 +355,45 @@ public class Trial extends VBox{
 
 						EventContainer e = list.next();
 
-						//Tracking events will be groups into single events.
-						//Either we hit a non tracking event or we hit a idle tracking state.
+						//This tests to see if either we hit a non tracking event (total miss) or we 
+						//hit a statechange idle-tracking etc.
 						if (!e.matb.event.equals("Tracking")){//Keep the null check!
+
 							//Skipping events of the same type. We used the same iterator so it will remove them from the list.
 							list.previous();
 							liveTime = new Period(row.time, e.time);
 							break;
+
+						} else if (e.trck != null && current.trck != null && stateChange(current.trck, e.trck)) {
+
+							if (current.trck.compass.equals("C")){ //Idle block
+
+								//State change in an idle block behaves as normal. Break imediately.
+
+								//Skipping events of the same type. We used the same iterator so it will remove them from the list.
+								list.previous();
+								liveTime = new Period(row.time, e.time);
+								break;
+
+							} else { //Tracking block
+
+								//This needs to be handled differently. We will only break if the next next event in comparison to
+								//e is also stateChange compared to the initial event. (Single idle events are allowed in a block)
+								e = list.next();
+
+								//We already know that current.trck exists and can use this as additive logic.
+								if (e.trck != null && stateChange(current.trck, e.trck)){
+
+									//Roll back twice. This will become its own block.
+									list.previous();
+									list.previous();
+									liveTime = new Period(row.time, e.time);
+									break;
+
+								}
+
+							}
+
 						}
 
 					}

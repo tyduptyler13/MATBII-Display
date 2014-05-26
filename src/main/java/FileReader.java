@@ -327,9 +327,8 @@ public class FileReader extends TreeView<Node>{
 			} catch (Exception e){
 				
 				super.failed();
-				updateMessage("Failed");
+				updateMessage("Failed: " + e.getMessage());
 				e.printStackTrace(System.err);
-				this.setException(e);
 				return "Failed to save file! (" + file.getName() +")";
 				
 			} finally {
@@ -381,7 +380,7 @@ public class FileReader extends TreeView<Node>{
 				@Override
 				public void handle(WorkerStateEvent t) {
 					Console.log("Failed to save the file!");
-					Console.error(t.getSource().getException().getMessage());
+					Console.error(t.getSource().getMessage());
 				}
 
 			});
