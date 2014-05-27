@@ -351,50 +351,67 @@ public class Trial extends VBox{
 
 				if (row.event.equals("Tracking")){
 
+					EventContainer innerLast = current;
+
 					while (list.hasNext()){
 
 						EventContainer e = list.next();
+						EventContainer e2 = null;
+						if (list.hasNext()){
+							e2 = list.next();
+							list.previous(); //Don't want to skip it.
+						}
 
 						//This tests to see if either we hit a non tracking event (total miss) or we 
 						//hit a statechange idle-tracking etc.
-						if (!e.matb.event.equals("Tracking")){//Keep the null check!
+						if (!e.matb.event.equals("Tracking")){
 
 							//Skipping events of the same type. We used the same iterator so it will remove them from the list.
 							list.previous();
-							liveTime = new Period(row.time, e.time);
+							liveTime = new Period(row.time, innerLast.time);
 							break;
 
 						} else if (e.trck != null && current.trck != null && stateChange(current.trck, e.trck)) {
 
 							if (current.trck.compass.equals("C")){ //Idle block
 
-								//State change in an idle block behaves as normal. Break imediately.
+								//State change in an idle block behaves as normal. Break immediately.
 
 								//Skipping events of the same type. We used the same iterator so it will remove them from the list.
 								list.previous();
-								liveTime = new Period(row.time, e.time);
+								liveTime = new Period(row.time, innerLast.time);
 								break;
 
 							} else { //Tracking block
 
 								//This needs to be handled differently. We will only break if the next next event in comparison to
 								//e is also stateChange compared to the initial event. (Single idle events are allowed in a block)
-								e = list.next();
 
 								//We already know that current.trck exists and can use this as additive logic.
-								if (e.trck != null && stateChange(current.trck, e.trck)){
+								if (e2 != null && e2.trck != null && stateChange(current.trck, e2.trck)){
 
-									//Roll back twice. This will become its own block.
+									//We only need to roll back once. We did a e2 lookahead.
 									list.previous();
-									list.previous();
-									liveTime = new Period(row.time, e.time);
+									liveTime = new Period(row.time, innerLast.time);
 									break;
 
 								}
 
 							}
 
+						} else if (e.trck != null && e2 != null && e2.trck != null && current.trck != null
+								&& stateChange(current.trck, e.trck, e2.trck)){
+							//This is to check if tracking has been too idle and should be considered broken as idle.
+							//This will be hit only when the deviation between a, b, c is too low.
+
+							list.previous();
+							liveTime = new Period(row.time, innerLast.time);
+							break;
+
 						}
+
+						//Update last.
+						innerLast = e;
 
 					}
 
@@ -452,6 +469,44 @@ public class Trial extends VBox{
 		//Idle to tracking || tracking to idle.
 		return ((a.compass.equals("C") && !b.compass.equals("C")) || (!a.compass.equals("C") && b.compass.equals("C")));
 
+	}
+
+	/**
+	 * Similar to the other state change except that it checks to see if the condition after is
+	 * @param a
+	 * @param b
+	 * @param c
+	 * @return true if we can consider our state to have changed between a and b and possibly c.
+	 */
+	private static boolean stateChange (TRCKEvent a, TRCKEvent b, TRCKEvent c){
+
+		if (stateChange(a, b)){ //We only care if the next event is a state change.
+			return true;
+		} else { //Constant block.
+			if (!a.compass.equals("C")){//Not idle
+				//If our total deviation is greater than 16 and its a tracking event, it is still tracking, thus no state change.
+				return getDeviation(a, b, c) <= 16;//True if too idle thus state changed.
+			} else {//idle
+				return false; //Idle doesn't need to be broken by deviation.
+			}
+		}
+
+
+	}
+
+	/**
+	 * Calculates the total deviation between a, b, and c.
+	 * @param a
+	 * @param b
+	 * @param c
+	 * @return
+	 */
+	private static double getDeviation(TRCKEvent a, TRCKEvent b, TRCKEvent c){
+		double total = Math.abs(a.x - b.x);
+		total += Math.abs(b.x - c.x);
+		total += Math.abs(a.y - b.y);
+		total += Math.abs(b.y - c.y);
+		return total;
 	}
 
 }
