@@ -7,7 +7,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
+import java.util.regex.Pattern;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
@@ -24,8 +24,12 @@ import javafx.stage.FileChooser;
 
 public class FileReader extends TreeView<Node>{
 
-	private final Main root;
 	private ArrayList<Task<String>> tasks = new ArrayList<Task<String>>();
+
+	/**
+	 * Statically compiled file matcher for file filtering.
+	 */
+	private static final Pattern p = Pattern.compile("(COMM|MATB|RMAN|SYSM|TRCK|WRS)_[0-9]{4}_[0-9]{8}\\.(txt)");
 
 	/**
 	 * Matches all files specific to MATBII
@@ -37,8 +41,7 @@ public class FileReader extends TreeView<Node>{
 
 			if (f.isFile()){
 
-				if (f.getName().matches("(COMM|MATB|RMAN|SYSM|TRCK|WRS)_[0-9]{4}_[0-9]{8}\\.(txt)"))
-					return true;
+				return p.matcher(f.getName()).matches();
 
 			}
 
@@ -53,10 +56,8 @@ public class FileReader extends TreeView<Node>{
 	 * @param directory - Where to do the search.
 	 * @param rootWindow - Needed for the trials and saving files.
 	 */
-	public FileReader(File directory, Main rootWindow){
+	public FileReader(File directory){
 		super();
-
-		root = rootWindow;
 
 		//Selection mode
 		getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -66,10 +67,10 @@ public class FileReader extends TreeView<Node>{
 		ContextMenu menu = new ContextMenu();
 		MenuItem saveDataButton = new MenuItem("Save Data");
 		saveDataButton.setOnAction(new SaveDataEventHandle());
-		
+
 		MenuItem saveStatsButton = new MenuItem("Save Stats");
 		saveStatsButton.setOnAction(new SaveStatsEventHandle());
-		
+
 		menu.getItems().addAll(saveDataButton, saveStatsButton);
 
 		setContextMenu(menu);
@@ -225,13 +226,13 @@ public class FileReader extends TreeView<Node>{
 				}
 
 			} catch (Exception e){
-				
+
 				super.failed();
 				updateMessage("Failed");
 				Console.error("An error occured saving the file. Printed exception to System.err");
 				e.printStackTrace(System.err);
 				return "Failed to save file! (" + file.getName() +")";
-				
+
 			} finally {
 				out.flush();
 				out.close();
@@ -251,7 +252,7 @@ public class FileReader extends TreeView<Node>{
 
 			File f;
 			try {
-				f = root.getFile("Save to", efs, false);
+				f = Main.getFile("Save to", efs, false);
 			} catch (FileNotFoundException e1) {
 				Console.log("Save aborted.");
 				return;
@@ -297,9 +298,9 @@ public class FileReader extends TreeView<Node>{
 		}
 
 	}
-	
+
 	private class StatsWriter extends Task<String>{
-		
+
 		private final File file;
 		private final List<Trial> trials;
 
@@ -325,12 +326,12 @@ public class FileReader extends TreeView<Node>{
 				}
 
 			} catch (Exception e){
-				
+
 				super.failed();
 				updateMessage("Failed: " + e.getMessage());
 				e.printStackTrace(System.err);
 				return "Failed to save file! (" + file.getName() +")";
-				
+
 			} finally {
 				out.flush();
 				out.close();
@@ -338,19 +339,19 @@ public class FileReader extends TreeView<Node>{
 
 			return "Printed data to " + file.getName();
 		}
-		
+
 	}
-	
+
 	private class SaveStatsEventHandle implements EventHandler<ActionEvent>{
 
 		@Override
 		public void handle(ActionEvent event) {
-			
+
 			FileChooser.ExtensionFilter[] efs = {new FileChooser.ExtensionFilter("CSV files", "*.csv")};
 
 			File f;
 			try {
-				f = root.getFile("Save to", efs, false);
+				f = Main.getFile("Save to", efs, false);
 			} catch (FileNotFoundException e1) {
 				Console.log("Save aborted.");
 				return;
@@ -393,9 +394,9 @@ public class FileReader extends TreeView<Node>{
 				Console.error("Could not save to (" + f.getName() + "): " + e.getMessage());
 			}
 
-			
+
 		}
-		
+
 	}
 
 	private List<Trial> getSelected(TreeItem<Node> node){

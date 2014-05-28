@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -111,11 +112,11 @@ public class Main extends Application {
 
 	}
 
-	public void setList(Node n){
+	private static void setList(Node n){
 		list.setCenter(n);
 	}
 
-	protected void onOpenDirectory(){
+	private static void onOpenDirectory(){
 
 		DirectoryChooser chooser = new DirectoryChooser();
 		chooser.setTitle("Choose the top directory");
@@ -123,7 +124,7 @@ public class Main extends Application {
 
 		if (file == null) return;
 
-		FileReader fr = new FileReader(file, this);
+		FileReader fr = new FileReader(file);
 
 		setList(fr);
 
@@ -136,7 +137,7 @@ public class Main extends Application {
 	 * @return Chosen File
 	 * @throws FileNotFoundException 
 	 */
-	public File getFile(String title, FileChooser.ExtensionFilter[] ef , boolean open) throws FileNotFoundException{
+	public static File getFile(String title, FileChooser.ExtensionFilter[] ef , boolean open) throws FileNotFoundException{
 		FileChooser fc = new FileChooser();
 		fc.getExtensionFilters().addAll(ef);
 		fc.setTitle(title);
@@ -159,6 +160,31 @@ public class Main extends Application {
 
 	}
 
+	/**
+	 * Thread safe implementation of the println for its console.
+	 */
+	private static void println(final String s) {
+
+		//If already on the application thread then print immediately.
+		if (Platform.isFxApplicationThread()){
+			console.appendText(s + "\r\n");
+		} else {
+
+			//Otherwise we need to queue the task to run on the application thread.
+			Platform.runLater(new Runnable(){
+
+				@Override
+				public void run() {
+					println(s);
+				}
+
+			});
+
+		}
+
+
+	}
+
 	private static void openConsole(){
 
 		console.setPrefHeight(300);
@@ -168,8 +194,8 @@ public class Main extends Application {
 		Console.addOutput(new PrintInterface(){
 
 			@Override
-			public synchronized void print(String s) {
-				console.appendText(s + "\r\n");
+			public void print(String s){
+				println(s);
 			}
 
 		});
