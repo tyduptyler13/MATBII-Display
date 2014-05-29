@@ -291,9 +291,9 @@ public class Trial extends VBox {
 
 	}
 
-	private static String advGetDirection(String lastXIdle, EventContainer current) {
+	private static String advGetDirection(String lastXIdle, SuperIterator it, EventContainer current) {
 
-		if (lastXIdle != null && !isIdle(current)) { // We have an event that
+		if (lastXIdle != null && !isIdle(it)) { // We have an event that
 			// isn't null before us
 			// and the current event
 			// isn't null
@@ -427,12 +427,12 @@ public class Trial extends VBox {
 				blockSection = (liveTime != null ? printPeriod(liveTime) : "")
 						+ "," + (changeFlag ? changeCounter : "") + ","
 						+ (++blockCounter) + ","
-						+ advGetDirection(lastXIdle, current);
+						+ advGetDirection(lastXIdle, it, current);
 
 			} else { // Not a tracking block
 
 				blockSection = "," + (changeFlag ? changeCounter : "") + ",,"
-						+ advGetDirection(lastXIdle, current);
+						+ advGetDirection(lastXIdle, it, current);
 
 			}
 
