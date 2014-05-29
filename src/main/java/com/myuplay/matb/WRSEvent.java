@@ -1,16 +1,18 @@
+package com.myuplay.matb;
+
 import java.text.ParseException;
 
 import org.joda.time.LocalTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-
-public class WRSEvent extends ReaderInterface{
+public class WRSEvent extends ReaderInterface {
 
 	public static final String header = "\"Time\",\"MENL\",\"Phys\",\"Temp\",\"Perf\",\"EFFT\",\"FRUS\",\"Mean\",\"Remarks\"";
 	public static final int hcount = 10;
 
-	public static final DateTimeFormatter stf = DateTimeFormat.forPattern("mm:ss.S");
+	public static final DateTimeFormatter stf = DateTimeFormat
+			.forPattern("mm:ss.S");
 
 	public LocalTime time2;
 	public int menl;
@@ -32,7 +34,7 @@ public class WRSEvent extends ReaderInterface{
 
 		time = readDate(parts[0]);
 
-		if (parts.length >= 9){
+		if (parts.length >= 9) {
 
 			time2 = stf.parseLocalTime(parts[1]);
 			menl = Integer.parseInt(parts[2]);
@@ -43,7 +45,7 @@ public class WRSEvent extends ReaderInterface{
 			frus = Integer.parseInt(parts[7]);
 			mean = Float.parseFloat(parts[8]);
 
-			if (parts.length >= 10){
+			if (parts.length >= 10) {
 
 				remarks = parts[9].replaceAll(ccleaner, "");
 
@@ -57,8 +59,9 @@ public class WRSEvent extends ReaderInterface{
 	@Override
 	public String toString() {
 
-		String ret = stf.print(time) + ',' + menl + ',' + phys + ',' + perf + ',' +
-				efft + ',' + frus + ",\"" + mean + "\",\"" + remarks + "\"";
+		String ret = stf.print(time) + ',' + menl + ',' + phys + ',' + perf
+				+ ',' + efft + ',' + frus + ",\"" + mean + "\",\"" + remarks
+				+ "\"";
 
 		return ret;
 	}

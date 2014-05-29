@@ -1,3 +1,5 @@
+package com.myuplay.matb;
+
 import java.text.ParseException;
 
 import org.joda.time.DateTime;
@@ -5,16 +7,16 @@ import org.joda.time.LocalTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+public class TRCKEvent extends ReaderInterface {
 
-public class TRCKEvent extends ReaderInterface{
-
-	public static final String header = "\"Session Time\",\"Num\",\"This Interval Sum of Squares\",\"RMSD\",\"Num\"" +
-			",\"Session Aggregate Sum of Squares\",\"RMSD\",\"Num\",\"Run Aggregate Sum of Squares\",\"RMSD\",\"Compass\""
-			+",\"X\",\"Y\",\"Remarks\"";
+	public static final String header = "\"Session Time\",\"Num\",\"This Interval Sum of Squares\",\"RMSD\",\"Num\""
+			+ ",\"Session Aggregate Sum of Squares\",\"RMSD\",\"Num\",\"Run Aggregate Sum of Squares\",\"RMSD\",\"Compass\""
+			+ ",\"X\",\"Y\",\"Remarks\"";
 
 	public static final int hcount = 14;
 
-	private static final DateTimeFormatter stf = DateTimeFormat.forPattern("mm:ss");
+	private static final DateTimeFormatter stf = DateTimeFormat
+			.forPattern("mm:ss");
 
 	public DateTime st;
 	public int num;
@@ -31,9 +33,10 @@ public class TRCKEvent extends ReaderInterface{
 	public double y;
 	public String remarks = "";
 
-	public TRCKEvent(){}
+	public TRCKEvent() {
+	}
 
-	public TRCKEvent(String line) throws ParseException{
+	public TRCKEvent(String line) throws ParseException {
 		parse(line);
 	}
 
@@ -47,7 +50,7 @@ public class TRCKEvent extends ReaderInterface{
 
 		time = readDate(parts[0]);
 
-		if (parts.length >= 14){
+		if (parts.length >= 14) {
 			st = stf.parseDateTime(parts[1]);
 			num = readInt(parts[2]);
 			tisos = readInt(parts[3]);
@@ -62,19 +65,20 @@ public class TRCKEvent extends ReaderInterface{
 			x = Double.parseDouble(parts[12]);
 			y = Double.parseDouble(parts[13]);
 
-			if (parts.length >= 15){
-				//Collect all parts beyond the end, in case of spaces.
-				for (int x=14; x < parts.length; ++x){
+			if (parts.length >= 15) {
+				// Collect all parts beyond the end, in case of spaces.
+				for (int x = 14; x < parts.length; ++x) {
 					remarks += parts[x].replaceAll(ccleaner, "") + " ";
 				}
 
-				remarks.trim();//Clean superfluous spaces.
+				remarks.trim();// Clean superfluous spaces.
 
 			}
 
 		} else {
 
-			throw new ParseException("Could not parse line: '" + line + "' Unexpected Number of Parts",  14);
+			throw new ParseException("Could not parse line: '" + line
+					+ "' Unexpected Number of Parts", 14);
 
 		}
 
@@ -85,16 +89,27 @@ public class TRCKEvent extends ReaderInterface{
 	public String toString() {
 
 		String ret = "\"" + stf.print(st) + "\",";
-		ret += num + "," + tisos + ",\"" + rmsd + "\"," + num2 + "," + sasos + ",\"" + rmsd2 + "\"," +
-				num3 + "," + rasos + ",\"" + rmsd3 + "\",\"" + compass + "\",\"" + x + "\",\"" + y + "\",\""  + remarks + "\"";
+		ret += num + "," + tisos + ",\"" + rmsd + "\"," + num2 + "," + sasos
+				+ ",\"" + rmsd2 + "\"," + num3 + "," + rasos + ",\"" + rmsd3
+				+ "\",\"" + compass + "\",\"" + x + "\",\"" + y + "\",\""
+				+ remarks + "\"";
 
 		return ret;
 
 	}
 
-	private int readInt(String s){
+	private int readInt(String s) {
 		s = s.replaceAll(",", "");
 		return Integer.parseInt(s);
+	}
+	
+	/**
+	 * Shallow compare.
+	 * @param e
+	 * @return
+	 */
+	public boolean equals(TRCKEvent e){
+		return st.equals(e.st) && num == e.num;
 	}
 
 }

@@ -1,3 +1,5 @@
+package com.myuplay.matb;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 
@@ -20,7 +22,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
-
 public class Main extends Application {
 
 	private static Stage window;
@@ -40,7 +41,7 @@ public class Main extends Application {
 	}
 
 	@Override
-	public void start(Stage stage){
+	public void start(Stage stage) {
 
 		window = stage;
 
@@ -61,8 +62,8 @@ public class Main extends Application {
 
 		consoleWindow.show();
 
-		stage.setOnCloseRequest(new EventHandler<WindowEvent>(){
-			public void handle(WindowEvent e){
+		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+			public void handle(WindowEvent e) {
 				consoleWindow.close();
 			}
 		});
@@ -71,7 +72,7 @@ public class Main extends Application {
 
 	}
 
-	private Pane createMenu(){
+	private Pane createMenu() {
 
 		final HBox menu = new HBox();
 		menu.setPadding(new Insets(15, 12, 15, 12));
@@ -80,17 +81,18 @@ public class Main extends Application {
 
 		final Button open = new Button("Open");
 		open.setPrefSize(100, 20);
-		open.setOnAction(new EventHandler<ActionEvent>(){
+		open.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent arg0) {
 				onOpenDirectory();
 			}
 		});
 
-		Tooltip tt = new Tooltip("Select the top level of your trials. This program will search for all trials within this directory.");
+		Tooltip tt = new Tooltip(
+				"Select the top level of your trials. This program will search for all trials within this directory.");
 		Tooltip.install(open, tt);
 
-		//New menu buttons go here.
+		// New menu buttons go here.
 
 		menu.getChildren().addAll(open);
 
@@ -98,7 +100,7 @@ public class Main extends Application {
 
 	}
 
-	private Node createDisplay(){
+	private Node createDisplay() {
 
 		list = new BorderPane();
 		Text title = new Text("File Tree:");
@@ -112,17 +114,18 @@ public class Main extends Application {
 
 	}
 
-	private static void setList(Node n){
+	private static void setList(Node n) {
 		list.setCenter(n);
 	}
 
-	private static void onOpenDirectory(){
+	private static void onOpenDirectory() {
 
 		DirectoryChooser chooser = new DirectoryChooser();
 		chooser.setTitle("Choose the top directory");
 		File file = chooser.showDialog(window);
 
-		if (file == null) return;
+		if (file == null)
+			return;
 
 		FileReader fr = new FileReader(file);
 
@@ -132,27 +135,32 @@ public class Main extends Application {
 
 	/**
 	 * Allows you to retrieve a file from a GUI.
-	 * @param title - Title of window
-	 * @param open - Open existing file (If false, opens save dialog)
+	 * 
+	 * @param title
+	 *            - Title of window
+	 * @param open
+	 *            - Open existing file (If false, opens save dialog)
 	 * @return Chosen File
-	 * @throws FileNotFoundException 
+	 * @throws FileNotFoundException
 	 */
-	public static File getFile(String title, FileChooser.ExtensionFilter[] ef , boolean open) throws FileNotFoundException{
+	public static File getFile(String title, FileChooser.ExtensionFilter[] ef,
+			boolean open) throws FileNotFoundException {
 		FileChooser fc = new FileChooser();
 		fc.getExtensionFilters().addAll(ef);
 		fc.setTitle(title);
 
 		File f;
 
-		if (open){
+		if (open) {
 			f = fc.showOpenDialog(window);
 		} else {
 			f = fc.showSaveDialog(window);
 		}
 
-		if (f == null) throw new FileNotFoundException();
+		if (f == null)
+			throw new FileNotFoundException();
 
-		if (!f.getName().endsWith(".csv")){
+		if (!f.getName().endsWith(".csv")) {
 			f = new File(f.getAbsolutePath() + ".csv");
 		}
 
@@ -165,13 +173,14 @@ public class Main extends Application {
 	 */
 	private static void println(final String s) {
 
-		//If already on the application thread then print immediately.
-		if (Platform.isFxApplicationThread()){
+		// If already on the application thread then print immediately.
+		if (Platform.isFxApplicationThread()) {
 			console.appendText(s + "\r\n");
 		} else {
 
-			//Otherwise we need to queue the task to run on the application thread.
-			Platform.runLater(new Runnable(){
+			// Otherwise we need to queue the task to run on the application
+			// thread.
+			Platform.runLater(new Runnable() {
 
 				@Override
 				public void run() {
@@ -182,19 +191,18 @@ public class Main extends Application {
 
 		}
 
-
 	}
 
-	private static void openConsole(){
+	private static void openConsole() {
 
 		console.setPrefHeight(300);
 		console.setPrefWidth(500);
 		console.setEditable(false);
 
-		Console.addOutput(new PrintInterface(){
+		Console.addOutput(new PrintInterface() {
 
 			@Override
-			public void print(String s){
+			public void print(String s) {
 				println(s);
 			}
 
