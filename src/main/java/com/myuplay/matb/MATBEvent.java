@@ -9,8 +9,8 @@ public class MATBEvent extends ReaderInterface {
 	public static enum EventType {
 		EventProcessed("Event Processed"), DeviceInit("Device Initialization"), RecordingInterval(
 				"Recording Inverval Triggered"), SubjectResponse(
-				"Subject Response"), EventTerminated("Event Terminated"), Information(
-				"Information");
+						"Subject Response"), EventTerminated("Event Terminated"), Information(
+								"Information");
 
 		public final String type;
 
@@ -93,7 +93,7 @@ public class MATBEvent extends ReaderInterface {
 					if (3 < parts.length)
 						comment = parts[3].replaceAll(ccleaner, "");
 				} else if (parts[2].contains("Information")) { // Hacky fix for
-																// a dash. :(
+					// a dash. :(
 					eventType = EventType.Information;
 					event = parts[3];
 					if (3 < parts.length)
@@ -124,16 +124,16 @@ public class MATBEvent extends ReaderInterface {
 		return ret;
 
 	}
-	
+
 	/**
 	 * Shallow compare of event types.
 	 * @param e
 	 * @return
 	 */
 	public boolean equals(MATBEvent e){
-		
-		return e.equals(event);
-		
+
+		return e.event.equals(event);
+
 	}
 
 }

@@ -323,7 +323,7 @@ public class Trial extends VBox {
 
 		int changeCounter = 0;
 		int blockCounter = 0;
-		
+
 		String lastXIdle = null;
 
 		// Go through all events.
@@ -359,7 +359,7 @@ public class Trial extends VBox {
 				Period liveTime = null;
 
 				if (current.hasTRCK()) {
-					
+
 					SuperIterator cit = it.clone(); //Clone of iterator at current position before loop.
 					//Consider the first element.
 
@@ -446,7 +446,7 @@ public class Trial extends VBox {
 					+ ReaderInterface.printDate(current.time)
 					+ "\","
 					+ (current.hasTRCK() ? (isIdle(it) ? "Idle" : "Tracking") : current.matb.event)
-							+ "," + printPeriod(lastDiff) + "," + blockSection + ",";
+					+ "," + printPeriod(lastDiff) + "," + blockSection + ",";
 
 			try {
 				out.append(ret + "\r\n");
@@ -486,7 +486,7 @@ public class Trial extends VBox {
 		total += Math.abs(b.y - c.y);
 		return total;
 	}
-	
+
 	/**
 	 * Tests the current position of an iteratior for idle.
 	 * Uses 4 different tests depending on location and how many track
@@ -497,7 +497,10 @@ public class Trial extends VBox {
 	 * @return
 	 */
 	private static boolean isIdle(ECList.SuperIterator it){
-		if (it.hasTRCK(2)){ //Need at least 3 events for comparison
+
+		if (!it.peek(0).hasTRCK()){ //Have we hit a track event yet?
+			return false;
+		} else if (it.hasTRCK(2)){ //Need at least 3 events for comparison
 			return getDeviation(it.peekTRCK(0), it.peekTRCK(1), it.peekTRCK(2)) <= 16;
 		} else if (it.hasTRCK(1) && it.hasTRCK(-1)) {
 			return getDeviation(it.peekTRCK(0), it.peekTRCK(1), it.peekTRCK(-1)) <= 16;
@@ -507,7 +510,7 @@ public class Trial extends VBox {
 			return isIdle(it.peek(0));
 		}
 	}
-	
+
 	private static boolean isIdle(EventContainer current) {
 		return (current.hasTRCK() && current.trck.compass.equals("C"));
 	}

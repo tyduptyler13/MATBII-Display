@@ -1,6 +1,7 @@
 package com.myuplay.matb;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -17,7 +18,7 @@ import java.util.List;
  */
 public class ECList implements Iterable<EventContainer> {
 
-	private List<EventContainer> list = new ArrayList<EventContainer>();
+	private final List<EventContainer> list;
 
 	/**
 	 * This creates a filtered list and generates all needed variables for
@@ -26,6 +27,8 @@ public class ECList implements Iterable<EventContainer> {
 	 * @param masterList
 	 */
 	public ECList(List<EventContainer> masterList) {
+
+		List<EventContainer> tmp = new ArrayList<EventContainer>();
 
 		for (EventContainer event : masterList) {
 
@@ -36,11 +39,13 @@ public class ECList implements Iterable<EventContainer> {
 					&& (event.matb.eventType == MATBEvent.EventType.SubjectResponse
 					|| (event.matb.event.equals("Tracking")))) {
 
-				list.add(event);
+				tmp.add(event);
 
 			}
 
 		}
+
+		list = tmp; //For debugging.
 
 	}
 
@@ -70,16 +75,18 @@ public class ECList implements Iterable<EventContainer> {
 			index = -1;
 			trackIndex = -1;
 
-			trackList = new ArrayList<Integer>();
+			List<Integer> tmp = new ArrayList<Integer>();
 
 			for (int i = 0; i < list.size(); ++i){
 				if (list.get(i).hasTRCK()){
-					trackList.add(i);
+					tmp.add(i);
 				}
 			}
 
+			trackList = tmp; //For debugging.
+
 		}
-		
+
 		public SuperIterator(SuperIterator s){
 			index = s.index;
 			trackIndex = s.trackIndex;
@@ -180,21 +187,21 @@ public class ECList implements Iterable<EventContainer> {
 		public EventContainer peekPrevious(){
 			return peek(-1);
 		}
-		
+
 		public TRCKEvent peekTRCK(int i){
 
-			if (hasTRCK(trackIndex + i)){
+			if (hasTRCK(i)){
 				return list.get(trackList.get(trackIndex + i)).trck;
 			} else {
 				return null;
 			}
 
 		}
-		
+
 		public TRCKEvent peekPreviousTRCK(){
 			return peekTRCK(-1);
 		}
-		
+
 		public boolean isNextTracking(){
 			if (hasNext()){
 				return peek().hasTRCK();
@@ -210,8 +217,8 @@ public class ECList implements Iterable<EventContainer> {
 		}
 
 		public boolean hasTRCK(int i){
-			int index = trackIndex + i;
-			return (index >= 0 && index < trackList.size());
+			int tmp = trackIndex + i;
+			return (tmp >= 0 && tmp < trackList.size());
 		}
 
 		@Override
@@ -219,26 +226,26 @@ public class ECList implements Iterable<EventContainer> {
 			if (hasPrevious()){
 				index--;
 				EventContainer e = list.get(index);
-				
+
 				if (e.hasTRCK()){
 					trackIndex = trackList.indexOf(index);
 				}
-				
+
 				return e;
-				
+
 			} else {
 				return null;
 			}
 		}
-		
+
 		public TRCKEvent previousTRCK() {
 			if (hasPreviousTRCK()){
 				trackIndex--;
-				
+
 				index = trackList.get(trackIndex);
-				
+
 				return list.get(index).trck;
-				
+
 			} else {
 				return null;
 			}
@@ -248,15 +255,15 @@ public class ECList implements Iterable<EventContainer> {
 		public int nextIndex() {
 			return index + 1;
 		}
-		
+
 		public int nextTRCKIndex() {
 			return trackList.get(trackIndex + 1);
 		}
-		
+
 		public int index(){
 			return index;
 		}
-		
+
 		public int TRCKIndex(){
 			return trackList.get(trackIndex);
 		}
@@ -265,11 +272,11 @@ public class ECList implements Iterable<EventContainer> {
 		public int previousIndex() {
 			return index - 1;
 		}
-		
+
 		public int previousTRCKIndex() {
 			return trackList.get(trackIndex - 1);
 		}
-		
+
 		public SuperIterator clone(){
 			return new SuperIterator(this);
 		}
