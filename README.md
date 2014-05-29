@@ -3,7 +3,7 @@ MATBII-Display
 
 A custom MATBII display tool for its output files.
 
-![Build Status](http://ci.myuplay.com/job/MATBII-Display/badge/icon)
+[![Build Status](http://ci.myuplay.com/job/MATBII-Display/badge/icon)](http://ci.myuplay.com/job/MATBII-Display/)
 
 Description
 ----
