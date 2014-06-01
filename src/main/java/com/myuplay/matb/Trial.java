@@ -307,7 +307,25 @@ public class Trial extends VBox {
 
 	}
 
-	public BufferedWriter getStats(BufferedWriter out) {
+	private static boolean changed(SuperIterator it){
+
+		if (!it.hasPrevious()) return false;
+
+		SuperIterator prev = it.cloneAt(-1);
+		EventContainer prevEvent = prev.peek(0);
+		EventContainer current = it.peek(0);
+
+		//Is the current event different than the last.
+		//This also means testing to see if both are tracking and only one is idle.
+		if (!prevEvent.equals(current.matb) || (prevEvent.hasTRCK() && current.hasTRCK() && stateChange(prev, it))) {
+			//Test previous track event against current.
+			return true;
+		}
+
+		return false;
+	}
+
+	public BufferedWriter getStats(BufferedWriter out) throws IOException {
 
 		String absolutePath = files[0].getAbsolutePath();
 		String filePath = absolutePath.substring(0,
@@ -322,7 +340,6 @@ public class Trial extends VBox {
 		SuperIterator it = list.iterator();
 
 		int changeCounter = 0;
-		int blockCounter = 0;
 
 		String lastXIdle = null;
 
@@ -335,106 +352,25 @@ public class Trial extends VBox {
 				continue; // Skip rows that don't have matb.
 
 			// Change detection
-			boolean changeFlag = false;
-			SuperIterator tmp = it.clone(); //Copy of iterator.
-			tmp.previousTRCK(); //Move back one track event.
-			if ((it.hasPrevious() && !it.peekPrevious().equals(current.matb)) ||
-					(it.hasPreviousTRCK() && current.hasTRCK() && stateChange(tmp, it))) { //Test previous track event against current.
-				changeCounter++;
-				changeFlag = true;
-			}
+			boolean changeFlag = changed(it);
+
+			//Increment changes.
+			if (changeFlag) changeCounter++;
 
 			String blockSection;
 
-			// Block Change and blocking (chunking) code.
-			// This is true if the last event differs with this event and the
-			// next event is the same as this event
-			// This also checks to make sure that tracking has the same compass
-			// as the next (these are considered differently)
-			tmp = it.clone();
-			tmp.nextTRCK();
-			if (changeFlag && it.hasNext() && it.peek().equals(current.matb)
-					&& (it.isNextTracking() ? !stateChange(it, tmp) : true)) {
-
-				Period liveTime = null;
-
-				if (current.hasTRCK()) {
-
-					SuperIterator cit = it.clone(); //Clone of iterator at current position before loop.
-					//Consider the first element.
-
-					while (it.hasNext()) {
-
-						tmp = it.clone();
-						EventContainer e = tmp.next();
-
-						// This tests to see if either we hit a non tracking
-						// event (total miss) or we
-						// hit a statechange idle-tracking etc.
-						if (!e.hasTRCK()) {
-
-							// Skipping events of the same type. We used the
-							// same iterator so it will remove them from the
-							// list.
-							liveTime = new Period(current.time, it.peek(0).time);
-							break;
-
-						} else if (stateChange(cit, tmp)) { //Is this idle, is the next idle?
-
-							if (isIdle(cit)) { //Did we start idle?
-
-								// State change in an idle block behaves as
-								// normal. Break immediately.
-
-								// Skipping events of the same type. We used the
-								// same iterator so it will remove them from the
-								// list.
-								liveTime = new Period(current.time, it.peek(0).time);
-								break;
-
-							} else { // Tracking block
-
-								// This needs to be handled differently. We will
-								// only break if the next next event in
-								// comparison to
-								// e is also stateChange compared to the initial
-								// event. (Single idle events are allowed in a
-								// block)
-
-								// We already know that current.trck exists and
-								// can use this as additive logic.
-								SuperIterator tmp2 = tmp.clone();
-								tmp2.next();
-								if (stateChange(tmp, tmp2)) { //Looking at n + 1 and n + 2
-
-									// We only need to roll back once. We did a
-									// e2 lookahead.
-									liveTime = new Period(current.time, it.peek(0).time);
-									break;
-
-								}
-
-							}
-
-						}
-
-						it = tmp; //Just remove the old iterator. Inexpensive.
-
-					}
-
-				}
-
-				blockSection = (liveTime != null ? printPeriod(liveTime) : "")
-						+ "," + (changeFlag ? changeCounter : "") + ","
-						+ (++blockCounter) + ","
+			//Block code.
+			if (changeFlag){//All changes can trigger a block.
+				Period blockTime = consumeBlock(it);
+				blockSection = printPeriod(blockTime) //No longer have single events.
+						+ "," + changeCounter + "," //We know the block changed.
 						+ advGetDirection(lastXIdle, it, current);
-
-			} else { // Not a tracking block
-
-				blockSection = "," + (changeFlag ? changeCounter : "") + ",,"
+			} else {
+				blockSection = "," + (changeFlag ? changeCounter : "") + ","
 						+ advGetDirection(lastXIdle, it, current);
-
 			}
+
+			//FIXME The stuff below here needs to be fixed.
 
 			Period lastDiff = (it.hasPrevious() ? new Period(it.peekPrevious().time, current.time)
 			: new Period(current.time.getMillisOfDay()));
@@ -448,11 +384,8 @@ public class Trial extends VBox {
 					+ (current.hasTRCK() ? (isIdle(it) ? "Idle" : "Tracking") : current.matb.event)
 					+ "," + printPeriod(lastDiff) + "," + blockSection + ",";
 
-			try {
-				out.append(ret + "\r\n");
-			} catch (IOException e1) {
-				Console.error("An error occured writting to the file!");
-			}
+
+			out.append(ret + "\r\n");
 
 			// Special case of tracking non idle for switching.
 			if (!isIdle(it))// If not idle.
@@ -463,11 +396,53 @@ public class Trial extends VBox {
 		return out;
 	}
 
+	/**
+	 * New block consuming code.
+	 * @param it
+	 * @return
+	 */
+	private static Period consumeBlock(SuperIterator it){
+
+		EventContainer start = it.peek(0); //First block that is considered part of the block.
+
+		while (it.hasNext()){
+
+			EventContainer current = it.peek();
+
+			if (!start.equals(current)){ //The events are different.
+
+				if (isIdle(it.cloneAt(1))){ //Is the next event idle.
+
+					if (isIdle(it.cloneAt(2))){ //Is the one after the next idle?
+						break;
+					}
+
+					//continue because this is ok to have just one idle.
+
+				} else { //The next event was not idle. Break out.
+					break;
+				}
+
+			} else if (current.hasTRCK()){//Special logic for tracking events.
+
+				//TODO
+
+			}
+
+			it.next(); //Increment.
+
+		}
+
+		return new Period(start.time, it.peek(0).time);
+
+	}
+
+
 	private static String printPeriod(Period p) {
 		return ReaderInterface.printDate(new LocalTime(-61200000).plus(p));//Fix the weird 7 hour thing.
 	}
 
-	private static boolean stateChange(ECList.SuperIterator a, ECList.SuperIterator b){
+	private static boolean stateChange(SuperIterator a, SuperIterator b){
 		return (isIdle(a) != isIdle(b));
 	}
 
@@ -498,21 +473,53 @@ public class Trial extends VBox {
 	 */
 	private static boolean isIdle(ECList.SuperIterator it){
 
-		if (!it.peek(0).hasTRCK()){ //Have we hit a track event yet?
-			return false;
-		} else if (it.hasTRCK(2)){ //Need at least 3 events for comparison
-			return getDeviation(it.peekTRCK(0), it.peekTRCK(1), it.peekTRCK(2)) <= 16;
-		} else if (it.hasTRCK(1) && it.hasTRCK(-1)) {
-			return getDeviation(it.peekTRCK(0), it.peekTRCK(1), it.peekTRCK(-1)) <= 16;
-		} else if (it.hasTRCK(-2)){
-			return getDeviation(it.peekTRCK(0), it.peekTRCK(-1), it.peekTRCK(-2)) <= 16;
-		} else {
-			return isIdle(it.peek(0));
+		Boolean val;
+		if ( (val = it.isIdle()) != null){
+			return val.booleanValue();
 		}
+
+		boolean tmp;
+
+		if (!it.peek(0).hasTRCK()){ //Has to be a tracking event to be idle.
+			it.setIdle(false);
+			return false;	
+			//Need at least 3 events for comparison
+		} else if (checkTime(it, -1, 0, 1)) { //Prefer this first.
+			tmp = getDeviation(it.peekTRCK(-1), it.peekTRCK(0), it.peekTRCK(1)) <= 16;
+		} else if (checkTime(it, 0, 1, 2)){ //Maybe we don't have a previous event. Look ahead instead.
+			tmp = getDeviation(it.peekTRCK(0), it.peekTRCK(1), it.peekTRCK(2)) <= 16;
+		} else if (checkTime(it, -2, -1, 0)){ //Don't have events in front? Check behind.
+			tmp = getDeviation(it.peekTRCK(-2), it.peekTRCK(-1), it.peekTRCK(0)) <= 16;
+		} else {
+			tmp = isIdle(it.peek(0));
+		}
+
+		it.setIdle(tmp);
+		return tmp;
 	}
 
 	private static boolean isIdle(EventContainer current) {
 		return (current.hasTRCK() && current.trck.compass.equals("C"));
+	}
+
+	private static boolean checkTime(SuperIterator it, int ... offsets){
+
+		for (int offset : offsets){
+			if (!it.hasTRCK(offset))
+				return false; //Missing a position.
+		}
+
+		for (int i = 0; i + 1 < offsets.length; ++i){
+
+			Period diff = new Period(it.peekTRCK(offsets[i]).time, it.peekTRCK(offsets[i + 1]).time);
+
+			if (diff.getSeconds() > 10)
+				return false; //An event is outside of the allowed time.
+
+		}
+
+		return true;
+
 	}
 
 }
