@@ -2,6 +2,8 @@ package com.myuplay.matb;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * A much fancier container for handling EventContainers and iterating through
@@ -67,13 +69,17 @@ public class ECList implements Iterable<EventContainer> {
 
 		public SuperIterator cloneAt(int i) {
 			SuperIterator tmp = clone();
-			tmp.peek(i);
-			return tmp;
-		}
 
-		public SuperIterator cloneAtTRCK(int i) {
-			SuperIterator tmp = clone();
-			tmp.peekTRCK(i);
+			if (i > 0){
+				for (;i>0;--i){
+					tmp.next();
+				}
+			} else if (i < 0){
+				for (;i<0;++i){
+					tmp.previous();
+				}
+			}
+
 			return tmp;
 		}
 
@@ -275,7 +281,7 @@ public class ECList implements Iterable<EventContainer> {
 		}
 
 		public void setIdle(boolean val) {
-			idle.set(index, new Boolean(val));
+			idle.put(index, new Boolean(val));
 		}
 
 		public int TRCKIndex() {
@@ -286,7 +292,7 @@ public class ECList implements Iterable<EventContainer> {
 
 	private final List<EventContainer> list;
 
-	private final List<Boolean> idle; // List of recorded idles.
+	private final Map<Integer, Boolean> idle; // List of recorded idles.
 
 	/**
 	 * This creates a filtered list and generates all needed variables for
@@ -297,7 +303,6 @@ public class ECList implements Iterable<EventContainer> {
 	public ECList(List<EventContainer> masterList) {
 
 		List<EventContainer> tmp = new ArrayList<EventContainer>();
-		idle = new ArrayList<Boolean>();
 
 		for (EventContainer event : masterList) {
 
@@ -316,6 +321,7 @@ public class ECList implements Iterable<EventContainer> {
 		}
 
 		list = tmp; // For debugging.
+		idle = new TreeMap<Integer, Boolean>();
 
 	}
 
