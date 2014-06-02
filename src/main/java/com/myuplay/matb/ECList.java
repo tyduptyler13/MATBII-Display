@@ -88,7 +88,7 @@ public class ECList implements Iterable<EventContainer> {
 			SuperIterator tmp = clone();
 
 			if (i > 0){
-				for (;i>0;++i){
+				for (;i>0;--i){
 					tmp.nextTRCK();
 				}
 			} else if (i < 0) {
