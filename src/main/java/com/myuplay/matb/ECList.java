@@ -83,6 +83,24 @@ public class ECList implements Iterable<EventContainer> {
 			return tmp;
 		}
 
+		public SuperIterator cloneAtTRCK(int i){
+
+			SuperIterator tmp = clone();
+
+			if (i > 0){
+				for (;i>0;++i){
+					tmp.nextTRCK();
+				}
+			} else if (i < 0) {
+				for (;i<0;++i){
+					tmp.previousTRCK();
+				}
+			}
+
+			return tmp;
+
+		}
+
 		@Override
 		public boolean has(int i) {
 			int tmp = index + i;

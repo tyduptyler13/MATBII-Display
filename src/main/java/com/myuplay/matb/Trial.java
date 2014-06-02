@@ -199,8 +199,14 @@ public class Trial extends VBox {
 		return Trial.header + ',' + EventContainer.getHeader();
 	}
 
-	// Begin stats functions
+	/*****************************************
+	 * Begin the stats section.              *
+	 *****************************************/
 
+	/**
+	 * Returns CVS formated header.
+	 * @return
+	 */
 	public static String getStatsHeader() {
 		return header
 				+ ",Time,Event,"
@@ -409,7 +415,8 @@ public class Trial extends VBox {
 				} else { //Not idle
 
 					//This will get hit only if it[0] and it[1] are tracking.
-					if (isIdle(it.cloneAt(1)) && isIdle(it.cloneAt(2))){
+					//We don't know if it[2] is tracking so do a cloneAtTRCK instead.
+					if (isIdle(it.cloneAt(1)) && isIdle(it.cloneAtTRCK(2))){
 						//The next 2 events are idle so we should leave the block.
 						break;
 					}
